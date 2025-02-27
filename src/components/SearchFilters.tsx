@@ -98,7 +98,7 @@ export default function SearchFiltersComponent({
   };
   
   const clearFilters = () => {
-    const clearedFilters = {
+    const clearedFilters: SearchFilters = {
       ...filters,
       genres: [],
       status: undefined,
