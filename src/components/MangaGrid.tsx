@@ -7,12 +7,14 @@ interface MangaGridProps {
   manga: Manga[];
   isLoading?: boolean;
   emptyMessage?: string;
+  renderOverlay?: (manga: Manga) => React.ReactNode;
 }
 
 export default function MangaGrid({ 
   manga, 
   isLoading = false,
-  emptyMessage = "No manga found" 
+  emptyMessage = "No manga found",
+  renderOverlay
 }: MangaGridProps) {
   const { user } = useAuth();
   const favorites = user?.favorites || [];
@@ -45,7 +47,8 @@ export default function MangaGrid({
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
       {manga.map((item, index) => (
-        <div key={item.id} className={`stagger-item animate-fade-in`}>
+        <div key={item.id} className={`stagger-item animate-fade-in relative`}>
+          {renderOverlay && renderOverlay(item)}
           <MangaCard manga={item} isFavorite={favorites.includes(item.id)} />
         </div>
       ))}

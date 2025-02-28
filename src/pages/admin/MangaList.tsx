@@ -1,14 +1,16 @@
+
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import AdminLayout from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { fetchAllManga, deleteManga } from "@/lib/admin-api";
 import { Manga } from "@/lib/types";
 import { Edit, Trash2, PlusCircle, BookOpen } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useNavigate } from "react-router-dom";
 import { checkIsAdmin } from "@/lib/supabase";
+import MangaGrid from "@/components/MangaGrid";
+import { Card } from "@/components/ui/card";
 
 const MangaList = () => {
   const [manga, setManga] = useState<Manga[]>([]);
@@ -72,6 +74,45 @@ const MangaList = () => {
     </div>;
   }
 
+  // Render admin actions on hover for each manga
+  const AdminMangaGrid = () => {
+    return (
+      <div className="relative">
+        <MangaGrid 
+          manga={manga} 
+          isLoading={loading} 
+          emptyMessage="No manga found in the database."
+          renderOverlay={(item) => (
+            <div className="absolute top-2 right-2 flex space-x-2 bg-black/60 p-2 rounded">
+              <Button variant="outline" size="icon" asChild className="h-8 w-8 bg-white/10">
+                <Link to={`/admin/manga/${item.id}`}>
+                  <Edit className="h-4 w-4" />
+                </Link>
+              </Button>
+              <Button variant="outline" size="icon" asChild className="h-8 w-8 bg-white/10">
+                <Link to={`/admin/chapters?mangaId=${item.id}`}>
+                  <BookOpen className="h-4 w-4" />
+                </Link>
+              </Button>
+              <Button 
+                variant="destructive" 
+                size="icon" 
+                className="h-8 w-8"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleDeleteClick(item);
+                }}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+        />
+      </div>
+    );
+  };
+
   return (
     <AdminLayout title="Manga List">
       <div className="container mx-auto py-6">
@@ -82,60 +123,21 @@ const MangaList = () => {
           </Button>
         </div>
 
-        {loading ? (
-          <div className="text-center py-10">Loading manga...</div>
-        ) : error ? (
-          <div className="text-center text-red-500 py-10">{error}</div>
-        ) : manga.length === 0 ? (
-          <div className="text-center py-10">
-            <p className="text-lg mb-4">No manga found in the database.</p>
-            <Button asChild>
-              <Link to="/admin/manga/new">Add Your First Manga</Link>
-            </Button>
-          </div>
+        {error ? (
+          <Card className="p-8">
+            <div className="text-center text-red-500">{error}</div>
+          </Card>
+        ) : manga.length === 0 && !loading ? (
+          <Card className="p-8">
+            <div className="text-center py-10">
+              <p className="text-lg mb-4">No manga found in the database.</p>
+              <Button asChild>
+                <Link to="/admin/manga/new">Add Your First Manga</Link>
+              </Button>
+            </div>
+          </Card>
         ) : (
-          <div className="grid gap-6">
-            {manga.map((item) => (
-              <Card key={item.id}>
-                <CardContent className="p-4">
-                  <div className="flex items-center space-x-4">
-                    <div className="h-16 w-12 overflow-hidden rounded">
-                      <img 
-                        src={item.coverImage || "/placeholder.svg"} 
-                        alt={item.title} 
-                        className="h-full w-full object-cover"
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-bold">{item.title}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        By {item.author} • {item.status} • {item.releaseYear}
-                      </p>
-                    </div>
-                    <div className="flex space-x-2">
-                      <Button variant="outline" size="icon" asChild>
-                        <Link to={`/admin/manga/${item.id}`}>
-                          <Edit className="h-4 w-4" />
-                        </Link>
-                      </Button>
-                      <Button variant="outline" size="icon" asChild>
-                        <Link to={`/admin/chapters?mangaId=${item.id}`}>
-                          <BookOpen className="h-4 w-4" />
-                        </Link>
-                      </Button>
-                      <Button 
-                        variant="destructive" 
-                        size="icon" 
-                        onClick={() => handleDeleteClick(item)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          <AdminMangaGrid />
         )}
 
         <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
