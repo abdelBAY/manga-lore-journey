@@ -60,6 +60,92 @@ export type Database = {
           },
         ]
       }
+      chapters: {
+        Row: {
+          created_at: string
+          id: string
+          manga_id: string
+          number: number
+          pages: string[]
+          release_date: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          manga_id: string
+          number: number
+          pages: string[]
+          release_date?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          manga_id?: string
+          number?: number
+          pages?: string[]
+          release_date?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chapters_manga_id_fkey"
+            columns: ["manga_id"]
+            isOneToOne: false
+            referencedRelation: "manga"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      manga: {
+        Row: {
+          artist: string
+          author: string
+          cover_image: string
+          created_at: string
+          description: string
+          genres: string[]
+          id: string
+          rating: number
+          release_year: number
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          artist: string
+          author: string
+          cover_image: string
+          created_at?: string
+          description: string
+          genres: string[]
+          id?: string
+          rating: number
+          release_year: number
+          status: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          artist?: string
+          author?: string
+          cover_image?: string
+          created_at?: string
+          description?: string
+          genres?: string[]
+          id?: string
+          rating?: number
+          release_year?: number
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string | null
@@ -206,15 +292,48 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["user_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_admin: {
+        Args: {
+          uid: string
+        }
+        Returns: boolean
+      }
+      set_user_admin: {
+        Args: {
+          email: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       booking_status: "pending" | "confirmed" | "completed" | "cancelled"
+      user_role: "user" | "admin"
     }
     CompositeTypes: {
       [_ in never]: never

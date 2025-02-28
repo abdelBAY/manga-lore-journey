@@ -1,352 +1,341 @@
 
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import AdminLayout from '@/components/AdminLayout';
-import { useAdminManga, useAdminChapters } from '@/hooks/useAdmin';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  Card,
-  CardContent,
-} from '@/components/ui/card';
-import { AdminChapterFormData } from '@/lib/types';
-import { ArrowLeft, Save, Plus, Trash } from 'lucide-react';
+import { useState, useEffect } from "react";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
+import AdminLayout from "@/components/AdminLayout";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { fetchChapterById, createChapter, updateChapter, fetchAllManga } from "@/lib/admin-api";
+import { AdminChapterFormData, Manga } from "@/lib/types";
+import { useToast } from "@/hooks/use-toast";
+import { XCircle, Plus } from "lucide-react";
+import { checkIsAdmin } from "@/lib/supabase";
 
-export default function ChapterForm() {
-  const { id } = useParams<{ id: string }>();
+const defaultFormData: AdminChapterFormData = {
+  mangaId: "",
+  number: 1,
+  title: "",
+  releaseDate: new Date().toISOString().split('T')[0],
+  pages: [""]
+};
+
+const ChapterForm = () => {
+  const { id } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
-  const { allManga } = useAdminManga();
-  const isEditing = id !== 'new';
+  const { toast } = useToast();
   
-  const [formData, setFormData] = useState<AdminChapterFormData>({
-    mangaId: '',
-    number: 1,
-    title: '',
-    releaseDate: new Date().toISOString(),
-    pages: ['']
-  });
+  const [formData, setFormData] = useState<AdminChapterFormData>(defaultFormData);
+  const [manga, setManga] = useState<Manga[]>([]);
+  const [loading, setLoading] = useState(id ? true : false);
+  const [saving, setSaving] = useState(false);
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+
+  const searchParams = new URLSearchParams(location.search);
+  const queryMangaId = searchParams.get('mangaId');
   
-  const { getChapterById, createChapter, updateChapter } = useAdminChapters(formData.mangaId);
-  const chapterQuery = getChapterById(isEditing ? id! : '');
-  
-  const [errors, setErrors] = useState<Partial<Record<keyof AdminChapterFormData | 'pages', string>>>({});
-  
+  const isEditMode = !!id;
+
   useEffect(() => {
-    // If we're editing and have data, populate form
-    if (isEditing && chapterQuery.data) {
-      setFormData({
-        mangaId: chapterQuery.data.mangaId,
-        number: chapterQuery.data.number,
-        title: chapterQuery.data.title,
-        releaseDate: chapterQuery.data.releaseDate,
-        pages: chapterQuery.data.pages.length > 0 ? chapterQuery.data.pages : ['']
-      });
-    }
-    // If we're adding and have manga data, set the first manga as default
-    else if (!isEditing && allManga.data && allManga.data.length > 0 && !formData.mangaId) {
-      setFormData(prev => ({
-        ...prev,
-        mangaId: allManga.data[0].id
-      }));
-    }
-  }, [isEditing, chapterQuery.data, allManga.data, formData.mangaId]);
-  
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
+    const checkAdmin = async () => {
+      const admin = await checkIsAdmin();
+      setIsAdmin(admin);
+      if (!admin) {
+        navigate("/");
+      } else {
+        await loadManga();
+        if (isEditMode) {
+          await loadChapter();
+        } else if (queryMangaId) {
+          setFormData(prev => ({ ...prev, mangaId: queryMangaId }));
+        }
+      }
+    };
+
+    const loadManga = async () => {
+      try {
+        const data = await fetchAllManga();
+        setManga(data);
+        return data;
+      } catch (error) {
+        console.error("Error loading manga:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load manga list.",
+          variant: "destructive",
+        });
+      }
+    };
+
+    const loadChapter = async () => {
+      if (!id) return;
+      
+      try {
+        const chapter = await fetchChapterById(id);
+        if (chapter) {
+          setFormData({
+            mangaId: chapter.mangaId,
+            number: chapter.number,
+            title: chapter.title,
+            releaseDate: new Date(chapter.releaseDate).toISOString().split('T')[0],
+            pages: chapter.pages
+          });
+        } else {
+          toast({
+            title: "Error",
+            description: "Chapter not found.",
+            variant: "destructive",
+          });
+          navigate("/admin/chapters");
+        }
+      } catch (error) {
+        console.error("Error loading chapter:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load chapter data.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkAdmin();
+  }, [id, navigate, toast, isEditMode, queryMangaId]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    
-    // Clear error for this field
-    if (errors[name as keyof AdminChapterFormData]) {
-      setErrors((prev) => ({ ...prev, [name]: undefined }));
-    }
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
-  
-  const handleNumberChange = (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const value = parseInt(e.target.value);
-    if (!isNaN(value)) {
-      setFormData((prev) => ({ ...prev, number: value }));
-      
-      // Clear error for this field
-      if (errors.number) {
-        setErrors((prev) => ({ ...prev, number: undefined }));
-      }
-    }
+
+  const handleNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: Number(value) }));
   };
-  
-  const handleMangaChange = (mangaId: string) => {
-    setFormData((prev) => ({ ...prev, mangaId }));
-    
-    // Clear error for this field
-    if (errors.mangaId) {
-      setErrors((prev) => ({ ...prev, mangaId: undefined }));
-    }
+
+  const handleSelectChange = (name: string, value: string) => {
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
-  
-  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    // Convert HTML date input format to ISO string
-    const date = new Date(value);
-    if (!isNaN(date.getTime())) {
-      setFormData((prev) => ({ ...prev, releaseDate: date.toISOString() }));
-      
-      // Clear error for this field
-      if (errors.releaseDate) {
-        setErrors((prev) => ({ ...prev, releaseDate: undefined }));
-      }
-    }
-  };
-  
+
   const handlePageChange = (index: number, value: string) => {
-    const newPages = [...formData.pages];
-    newPages[index] = value;
-    setFormData((prev) => ({ ...prev, pages: newPages }));
-    
-    // Clear error for pages
-    if (errors.pages) {
-      setErrors((prev) => ({ ...prev, pages: undefined }));
-    }
+    setFormData(prev => {
+      const pages = [...prev.pages];
+      pages[index] = value;
+      return { ...prev, pages };
+    });
   };
-  
+
   const addPage = () => {
-    setFormData((prev) => ({
-      ...prev,
-      pages: [...prev.pages, '']
-    }));
+    setFormData(prev => ({ ...prev, pages: [...prev.pages, ""] }));
   };
-  
+
   const removePage = (index: number) => {
-    if (formData.pages.length > 1) {
-      const newPages = [...formData.pages];
-      newPages.splice(index, 1);
-      setFormData((prev) => ({ ...prev, pages: newPages }));
-    }
+    setFormData(prev => {
+      const pages = [...prev.pages];
+      pages.splice(index, 1);
+      
+      // Always have at least one page
+      if (pages.length === 0) {
+        pages.push("");
+      }
+      
+      return { ...prev, pages };
+    });
   };
-  
-  const validateForm = (): boolean => {
-    const newErrors: Partial<Record<keyof AdminChapterFormData | 'pages', string>> = {};
-    
-    if (!formData.mangaId) {
-      newErrors.mangaId = 'Manga is required';
-    }
-    
-    if (!formData.number || formData.number < 1) {
-      newErrors.number = 'Valid chapter number is required';
-    }
-    
-    if (!formData.title.trim()) {
-      newErrors.title = 'Title is required';
-    }
-    
-    if (!formData.releaseDate) {
-      newErrors.releaseDate = 'Release date is required';
-    }
-    
-    // Check if all page URLs are valid
-    const hasEmptyPages = formData.pages.some(page => !page.trim());
-    if (hasEmptyPages) {
-      newErrors.pages = 'All page URLs must be filled';
-    }
-    
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-  
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateForm()) {
+    // Filter out empty page URLs
+    const validPages = formData.pages.filter(page => page.trim() !== "");
+    
+    if (validPages.length === 0) {
+      toast({
+        title: "Validation Error",
+        description: "You need to add at least one page URL.",
+        variant: "destructive",
+      });
       return;
     }
     
-    if (isEditing) {
-      await updateChapter.mutateAsync({ id: id!, data: formData });
-    } else {
-      await createChapter.mutateAsync(formData);
+    const dataToSubmit = {
+      ...formData,
+      pages: validPages
+    };
+    
+    setSaving(true);
+
+    try {
+      if (isEditMode && id) {
+        await updateChapter(id, dataToSubmit);
+        toast({
+          title: "Success",
+          description: "Chapter updated successfully.",
+        });
+      } else {
+        const result = await createChapter(dataToSubmit);
+        if (result) {
+          toast({
+            title: "Success",
+            description: "Chapter created successfully.",
+          });
+          navigate(`/admin/chapters?mangaId=${result.mangaId}`);
+        }
+      }
+    } catch (error) {
+      console.error("Error saving chapter:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save chapter. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
     }
-    
-    navigate('/admin/chapters');
   };
-  
-  // Format the release date for input
-  const formatDateForInput = (isoString: string) => {
-    const date = new Date(isoString);
-    if (isNaN(date.getTime())) return '';
-    
-    return date.toISOString().split('T')[0];
-  };
-  
+
+  if (isAdmin === null || loading) {
+    return <div className="flex items-center justify-center min-h-screen">
+      <div className="text-xl">Loading...</div>
+    </div>;
+  }
+
   return (
-    <AdminLayout title={isEditing ? 'Edit Chapter' : 'Add New Chapter'}>
-      <div className="mb-6">
-        <Button 
-          variant="ghost" 
-          onClick={() => navigate('/admin/chapters')}
-          className="pl-0 hover:pl-2 transition-all"
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Chapter List
-        </Button>
-      </div>
-      
-      {(isEditing && chapterQuery.isLoading) || allManga.isLoading ? (
-        <div className="h-60 flex items-center justify-center">
-          <p className="text-white/50">Loading data...</p>
-        </div>
-      ) : !allManga.data || allManga.data.length === 0 ? (
-        <div className="h-60 flex flex-col items-center justify-center">
-          <p className="text-white/50 mb-4">You need to create a manga first</p>
-          <Button onClick={() => navigate('/admin/manga/new')}>Add Your First Manga</Button>
-        </div>
-      ) : (
-        <form onSubmit={handleSubmit} className="space-y-8">
-          <div className="grid grid-cols-1 gap-8">
-            <Card className="bg-card/50">
-              <CardContent className="pt-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="mangaId">Manga <span className="text-red-500">*</span></Label>
-                      <Select
-                        value={formData.mangaId}
-                        onValueChange={handleMangaChange}
-                        disabled={isEditing}
-                      >
-                        <SelectTrigger id="mangaId" className={errors.mangaId ? "border-red-500" : ""}>
-                          <SelectValue placeholder="Select a manga" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {allManga.data?.map((manga) => (
-                            <SelectItem key={manga.id} value={manga.id}>
-                              {manga.title}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {errors.mangaId && <p className="text-red-500 text-sm">{errors.mangaId}</p>}
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="number">Chapter Number <span className="text-red-500">*</span></Label>
-                      <Input
-                        id="number"
-                        name="number"
-                        type="number"
-                        min={1}
-                        value={formData.number}
-                        onChange={handleNumberChange}
-                        className={errors.number ? "border-red-500" : ""}
-                      />
-                      {errors.number && <p className="text-red-500 text-sm">{errors.number}</p>}
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="title">Chapter Title <span className="text-red-500">*</span></Label>
-                      <Input
-                        id="title"
-                        name="title"
-                        placeholder="Chapter title"
-                        value={formData.title}
-                        onChange={handleChange}
-                        className={errors.title ? "border-red-500" : ""}
-                      />
-                      {errors.title && <p className="text-red-500 text-sm">{errors.title}</p>}
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="releaseDate">Release Date <span className="text-red-500">*</span></Label>
-                      <Input
-                        id="releaseDate"
-                        name="releaseDate"
-                        type="date"
-                        value={formatDateForInput(formData.releaseDate)}
-                        onChange={handleDateChange}
-                        className={errors.releaseDate ? "border-red-500" : ""}
-                      />
-                      {errors.releaseDate && <p className="text-red-500 text-sm">{errors.releaseDate}</p>}
-                    </div>
-                  </div>
+    <AdminLayout>
+      <div className="container mx-auto py-6">
+        <h1 className="text-3xl font-bold mb-6">
+          {isEditMode ? "Edit Chapter" : "Add New Chapter"}
+        </h1>
+        
+        <form onSubmit={handleSubmit}>
+          <Card>
+            <CardHeader>
+              <CardTitle>Chapter Details</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="mangaId">Manga</Label>
+                <Select
+                  value={formData.mangaId}
+                  onValueChange={(value) => handleSelectChange("mangaId", value)}
+                  disabled={isEditMode}
+                  required
+                >
+                  <SelectTrigger id="mangaId">
+                    <SelectValue placeholder="Select a manga" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {manga.map((item) => (
+                      <SelectItem key={item.id} value={item.id}>
+                        {item.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="number">Chapter Number</Label>
+                  <Input
+                    id="number"
+                    name="number"
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={formData.number}
+                    onChange={handleNumberChange}
+                    required
+                  />
                 </div>
-              </CardContent>
-            </Card>
-            
-            <Card className="bg-card/50">
-              <CardContent className="pt-6">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <Label>Chapter Pages <span className="text-red-500">*</span></Label>
-                    <Button type="button" variant="outline" size="sm" onClick={addPage}>
-                      <Plus className="mr-1 h-3 w-3" /> Add Page
-                    </Button>
-                  </div>
-                  
-                  {errors.pages && <p className="text-red-500 text-sm">{errors.pages}</p>}
-                  
-                  <div className="space-y-3">
-                    {formData.pages.map((page, index) => (
-                      <div key={index} className="flex gap-3">
-                        <div className="w-16">
-                          <Label className="text-sm text-muted-foreground mb-1 block">Page {index + 1}</Label>
-                        </div>
-                        <div className="flex-1">
+                
+                <div className="space-y-2">
+                  <Label htmlFor="releaseDate">Release Date</Label>
+                  <Input
+                    id="releaseDate"
+                    name="releaseDate"
+                    type="date"
+                    value={formData.releaseDate}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="title">Chapter Title</Label>
+                <Input
+                  id="title"
+                  name="title"
+                  value={formData.title}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <Label>Pages (URLs)</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={addPage}
+                  >
+                    <Plus className="h-4 w-4 mr-1" /> Add Page
+                  </Button>
+                </div>
+                
+                <div className="space-y-3">
+                  {formData.pages.map((page, index) => (
+                    <div key={index} className="flex items-center space-x-2">
+                      <div className="flex-grow">
+                        <div className="flex items-center">
+                          <span className="bg-muted px-2 py-1 text-sm rounded-l-md border border-r-0 border-input">
+                            {index + 1}
+                          </span>
                           <Input
-                            placeholder="Image URL"
                             value={page}
                             onChange={(e) => handlePageChange(index, e.target.value)}
-                            className={errors.pages ? "border-red-500" : ""}
+                            placeholder="https://example.com/page.jpg"
+                            className="rounded-l-none"
                           />
                         </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => removePage(index)}
-                          disabled={formData.pages.length <= 1}
-                          className="text-muted-foreground hover:text-destructive"
-                        >
-                          <Trash size={16} />
-                        </Button>
                       </div>
-                    ))}
-                  </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removePage(index)}
+                        disabled={formData.pages.length <= 1}
+                      >
+                        <XCircle className="h-5 w-5 text-destructive" />
+                      </Button>
+                    </div>
+                  ))}
                 </div>
-              </CardContent>
-            </Card>
-          </div>
-          
-          <div className="flex justify-end gap-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => navigate('/admin/chapters')}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={createChapter.isPending || updateChapter.isPending}
-            >
-              <Save className="mr-2 h-4 w-4" />
-              {createChapter.isPending || updateChapter.isPending
-                ? 'Saving...'
-                : 'Save Chapter'}
-            </Button>
-          </div>
+              </div>
+              
+              <div className="flex justify-end space-x-4 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => navigate(`/admin/chapters${formData.mangaId ? `?mangaId=${formData.mangaId}` : ''}`)}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={saving}>
+                  {saving ? "Saving..." : isEditMode ? "Update Chapter" : "Create Chapter"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </form>
-      )}
+      </div>
     </AdminLayout>
   );
-}
+};
+
+export default ChapterForm;

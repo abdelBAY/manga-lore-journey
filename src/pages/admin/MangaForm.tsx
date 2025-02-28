@@ -1,388 +1,337 @@
 
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import AdminLayout from '@/components/AdminLayout';
-import { useAdminManga } from '@/hooks/useAdmin';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  Card,
-  CardContent,
-} from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
-import { AdminMangaFormData, Genre } from '@/lib/types';
-import { ArrowLeft, Save } from 'lucide-react';
+import { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import AdminLayout from "@/components/AdminLayout";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { fetchMangaById, createManga, updateManga } from "@/lib/admin-api";
+import { AdminMangaFormData, Genre } from "@/lib/types";
+import { useToast } from "@/hooks/use-toast";
+import { checkIsAdmin } from "@/lib/supabase";
 
-const allGenres: Genre[] = [
-  'Action', 'Adventure', 'Comedy', 'Drama', 'Fantasy',
-  'Horror', 'Mystery', 'Romance', 'Sci-Fi',
-  'Slice of Life', 'Sports', 'Supernatural', 'Thriller'
+const GENRES: Genre[] = [
+  'Action',
+  'Adventure',
+  'Comedy',
+  'Drama',
+  'Fantasy',
+  'Horror',
+  'Mystery',
+  'Romance',
+  'Sci-Fi',
+  'Slice of Life',
+  'Sports',
+  'Supernatural',
+  'Thriller'
 ];
 
-export default function MangaForm() {
-  const { id } = useParams<{ id: string }>();
+const STATUS_OPTIONS = [
+  { value: 'ongoing', label: 'Ongoing' },
+  { value: 'completed', label: 'Completed' },
+  { value: 'hiatus', label: 'Hiatus' }
+];
+
+const defaultFormData: AdminMangaFormData = {
+  title: "",
+  coverImage: "",
+  description: "",
+  status: "ongoing",
+  genres: [],
+  author: "",
+  artist: "",
+  releaseYear: new Date().getFullYear(),
+  rating: 0
+};
+
+const MangaForm = () => {
+  const { id } = useParams();
   const navigate = useNavigate();
-  const { getMangaById, createManga, updateManga } = useAdminManga();
-  
-  const isEditing = id !== 'new';
-  const mangaQuery = getMangaById(isEditing ? id! : '');
-  
-  const [formData, setFormData] = useState<AdminMangaFormData>({
-    title: '',
-    coverImage: '',
-    description: '',
-    status: 'ongoing',
-    genres: [],
-    author: '',
-    artist: '',
-    releaseYear: new Date().getFullYear(),
-    rating: 0
-  });
-  
-  const [errors, setErrors] = useState<Partial<Record<keyof AdminMangaFormData, string>>>({});
-  
+  const { toast } = useToast();
+  const [formData, setFormData] = useState<AdminMangaFormData>(defaultFormData);
+  const [loading, setLoading] = useState(id ? true : false);
+  const [saving, setSaving] = useState(false);
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+
+  const isEditMode = !!id;
+
   useEffect(() => {
-    if (isEditing && mangaQuery.data) {
-      setFormData({
-        title: mangaQuery.data.title,
-        coverImage: mangaQuery.data.coverImage,
-        description: mangaQuery.data.description,
-        status: mangaQuery.data.status,
-        genres: mangaQuery.data.genres as Genre[],
-        author: mangaQuery.data.author,
-        artist: mangaQuery.data.artist,
-        releaseYear: mangaQuery.data.releaseYear,
-        rating: mangaQuery.data.rating
-      });
-    }
-  }, [isEditing, mangaQuery.data]);
-  
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    
-    // Clear error for this field
-    if (errors[name as keyof AdminMangaFormData]) {
-      setErrors((prev) => ({ ...prev, [name]: undefined }));
-    }
-  };
-  
-  const handleNumberChange = (
-    e: React.ChangeEvent<HTMLInputElement>,
-    fieldName: keyof AdminMangaFormData
-  ) => {
-    const value = parseFloat(e.target.value);
-    setFormData((prev) => ({ ...prev, [fieldName]: value }));
-    
-    // Clear error for this field
-    if (errors[fieldName]) {
-      setErrors((prev) => ({ ...prev, [fieldName]: undefined }));
-    }
-  };
-  
-  const handleStatusChange = (value: string) => {
-    setFormData((prev) => ({ 
-      ...prev, 
-      status: value as 'ongoing' | 'completed' | 'hiatus' 
-    }));
-  };
-  
-  const handleGenreToggle = (genre: Genre) => {
-    setFormData((prev) => {
-      const newGenres = prev.genres.includes(genre)
-        ? prev.genres.filter((g) => g !== genre)
-        : [...prev.genres, genre];
+    const checkAdmin = async () => {
+      const admin = await checkIsAdmin();
+      setIsAdmin(admin);
+      if (!admin) {
+        navigate("/");
+      } else if (isEditMode) {
+        loadManga();
+      }
+    };
+
+    const loadManga = async () => {
+      if (!id) return;
       
-      return { ...prev, genres: newGenres };
+      try {
+        const manga = await fetchMangaById(id);
+        if (manga) {
+          setFormData({
+            title: manga.title,
+            coverImage: manga.coverImage,
+            description: manga.description,
+            status: manga.status,
+            genres: manga.genres as Genre[],
+            author: manga.author,
+            artist: manga.artist,
+            releaseYear: manga.releaseYear,
+            rating: manga.rating
+          });
+        } else {
+          toast({
+            title: "Error",
+            description: "Manga not found.",
+            variant: "destructive",
+          });
+          navigate("/admin/manga");
+        }
+      } catch (error) {
+        console.error("Error loading manga:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load manga data.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkAdmin();
+  }, [id, navigate, toast, isEditMode]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: Number(value) }));
+  };
+
+  const handleSelectChange = (name: string, value: string) => {
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleGenreToggle = (genre: Genre) => {
+    setFormData(prev => {
+      const genres = [...prev.genres];
+      if (genres.includes(genre)) {
+        return { ...prev, genres: genres.filter(g => g !== genre) };
+      } else {
+        return { ...prev, genres: [...genres, genre] };
+      }
     });
-    
-    // Clear error for genres
-    if (errors.genres) {
-      setErrors((prev) => ({ ...prev, genres: undefined }));
-    }
   };
-  
-  const validateForm = (): boolean => {
-    const newErrors: Partial<Record<keyof AdminMangaFormData, string>> = {};
-    
-    if (!formData.title.trim()) {
-      newErrors.title = 'Title is required';
-    }
-    
-    if (!formData.coverImage.trim()) {
-      newErrors.coverImage = 'Cover image URL is required';
-    }
-    
-    if (!formData.description.trim()) {
-      newErrors.description = 'Description is required';
-    }
-    
-    if (formData.genres.length === 0) {
-      newErrors.genres = 'At least one genre is required';
-    }
-    
-    if (!formData.author.trim()) {
-      newErrors.author = 'Author is required';
-    }
-    
-    if (!formData.artist.trim()) {
-      newErrors.artist = 'Artist is required';
-    }
-    
-    if (isNaN(formData.releaseYear) || formData.releaseYear < 1900 || formData.releaseYear > new Date().getFullYear()) {
-      newErrors.releaseYear = 'Valid release year is required';
-    }
-    
-    if (isNaN(formData.rating) || formData.rating < 0 || formData.rating > 5) {
-      newErrors.rating = 'Rating must be between 0 and 5';
-    }
-    
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-  
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!validateForm()) {
-      return;
+    setSaving(true);
+
+    try {
+      if (isEditMode && id) {
+        await updateManga(id, formData);
+        toast({
+          title: "Success",
+          description: "Manga updated successfully.",
+        });
+      } else {
+        const result = await createManga(formData);
+        if (result) {
+          toast({
+            title: "Success",
+            description: "Manga created successfully.",
+          });
+          navigate(`/admin/manga/${result.id}`);
+        }
+      }
+    } catch (error) {
+      console.error("Error saving manga:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save manga. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
     }
-    
-    if (isEditing) {
-      await updateManga.mutateAsync({ id: id!, data: formData });
-    } else {
-      await createManga.mutateAsync(formData);
-    }
-    
-    navigate('/admin/manga');
   };
-  
+
+  if (isAdmin === null || loading) {
+    return <div className="flex items-center justify-center min-h-screen">
+      <div className="text-xl">Loading...</div>
+    </div>;
+  }
+
   return (
-    <AdminLayout title={isEditing ? 'Edit Manga' : 'Add New Manga'}>
-      <div className="mb-6">
-        <Button 
-          variant="ghost" 
-          onClick={() => navigate('/admin/manga')}
-          className="pl-0 hover:pl-2 transition-all"
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Manga List
-        </Button>
-      </div>
-      
-      {isEditing && mangaQuery.isLoading ? (
-        <div className="h-60 flex items-center justify-center">
-          <p className="text-white/50">Loading manga data...</p>
-        </div>
-      ) : (
-        <form onSubmit={handleSubmit} className="space-y-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Main info */}
-            <div className="md:col-span-2 space-y-6">
-              <div className="space-y-4">
+    <AdminLayout>
+      <div className="container mx-auto py-6">
+        <h1 className="text-3xl font-bold mb-6">
+          {isEditMode ? "Edit Manga" : "Add New Manga"}
+        </h1>
+        
+        <form onSubmit={handleSubmit}>
+          <Card>
+            <CardHeader>
+              <CardTitle>Manga Details</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="title">Title <span className="text-red-500">*</span></Label>
+                  <Label htmlFor="title">Title</Label>
                   <Input
                     id="title"
                     name="title"
-                    placeholder="Manga title"
                     value={formData.title}
-                    onChange={handleChange}
-                    className={errors.title ? "border-red-500" : ""}
+                    onChange={handleInputChange}
+                    required
                   />
-                  {errors.title && <p className="text-red-500 text-sm">{errors.title}</p>}
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="description">Description <span className="text-red-500">*</span></Label>
-                  <Textarea
-                    id="description"
-                    name="description"
-                    placeholder="Enter a description of the manga"
-                    rows={6}
-                    value={formData.description}
-                    onChange={handleChange}
-                    className={errors.description ? "border-red-500" : ""}
+                  <Label htmlFor="coverImage">Cover Image URL</Label>
+                  <Input
+                    id="coverImage"
+                    name="coverImage"
+                    value={formData.coverImage}
+                    onChange={handleInputChange}
+                    required
                   />
-                  {errors.description && <p className="text-red-500 text-sm">{errors.description}</p>}
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="author">Author <span className="text-red-500">*</span></Label>
-                    <Input
-                      id="author"
-                      name="author"
-                      placeholder="Author name"
-                      value={formData.author}
-                      onChange={handleChange}
-                      className={errors.author ? "border-red-500" : ""}
-                    />
-                    {errors.author && <p className="text-red-500 text-sm">{errors.author}</p>}
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="artist">Artist <span className="text-red-500">*</span></Label>
-                    <Input
-                      id="artist"
-                      name="artist"
-                      placeholder="Artist name"
-                      value={formData.artist}
-                      onChange={handleChange}
-                      className={errors.artist ? "border-red-500" : ""}
-                    />
-                    {errors.artist && <p className="text-red-500 text-sm">{errors.artist}</p>}
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="author">Author</Label>
+                  <Input
+                    id="author"
+                    name="author"
+                    value={formData.author}
+                    onChange={handleInputChange}
+                    required
+                  />
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="status">Status</Label>
-                    <Select
-                      value={formData.status}
-                      onValueChange={handleStatusChange}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="ongoing">Ongoing</SelectItem>
-                        <SelectItem value="completed">Completed</SelectItem>
-                        <SelectItem value="hiatus">Hiatus</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="releaseYear">Release Year <span className="text-red-500">*</span></Label>
-                    <Input
-                      id="releaseYear"
-                      name="releaseYear"
-                      type="number"
-                      min={1900}
-                      max={new Date().getFullYear()}
-                      value={formData.releaseYear}
-                      onChange={(e) => handleNumberChange(e, 'releaseYear')}
-                      className={errors.releaseYear ? "border-red-500" : ""}
-                    />
-                    {errors.releaseYear && <p className="text-red-500 text-sm">{errors.releaseYear}</p>}
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="rating">Rating (0-5) <span className="text-red-500">*</span></Label>
-                    <Input
-                      id="rating"
-                      name="rating"
-                      type="number"
-                      min={0}
-                      max={5}
-                      step={0.1}
-                      value={formData.rating}
-                      onChange={(e) => handleNumberChange(e, 'rating')}
-                      className={errors.rating ? "border-red-500" : ""}
-                    />
-                    {errors.rating && <p className="text-red-500 text-sm">{errors.rating}</p>}
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="artist">Artist</Label>
+                  <Input
+                    id="artist"
+                    name="artist"
+                    value={formData.artist}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="releaseYear">Release Year</Label>
+                  <Input
+                    id="releaseYear"
+                    name="releaseYear"
+                    type="number"
+                    min="1900"
+                    max={new Date().getFullYear()}
+                    value={formData.releaseYear}
+                    onChange={handleNumberChange}
+                    required
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="rating">Rating (0-5)</Label>
+                  <Input
+                    id="rating"
+                    name="rating"
+                    type="number"
+                    min="0"
+                    max="5"
+                    step="0.1"
+                    value={formData.rating}
+                    onChange={handleNumberChange}
+                    required
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="status">Status</Label>
+                  <Select
+                    value={formData.status}
+                    onValueChange={(value) => handleSelectChange("status", value)}
+                  >
+                    <SelectTrigger id="status">
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {STATUS_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
-            </div>
-            
-            {/* Sidebar */}
-            <div className="space-y-6">
-              <Card className="bg-card/50">
-                <CardContent className="pt-6">
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="coverImage">Cover Image URL <span className="text-red-500">*</span></Label>
-                      <Input
-                        id="coverImage"
-                        name="coverImage"
-                        placeholder="https://example.com/image.jpg"
-                        value={formData.coverImage}
-                        onChange={handleChange}
-                        className={errors.coverImage ? "border-red-500" : ""}
-                      />
-                      {errors.coverImage && <p className="text-red-500 text-sm">{errors.coverImage}</p>}
-                    </div>
-                    
-                    {formData.coverImage && (
-                      <div className="aspect-[2/3] overflow-hidden rounded-md border border-border">
-                        <img
-                          src={formData.coverImage}
-                          alt="Cover preview"
-                          className="h-full w-full object-cover"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = 'https://via.placeholder.com/300x450?text=Invalid+Image';
-                          }}
-                        />
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
               
-              <Card className="bg-card/50">
-                <CardContent className="pt-6">
-                  <div className="space-y-4">
-                    <div>
-                      <Label>Genres <span className="text-red-500">*</span></Label>
-                      {errors.genres && <p className="text-red-500 text-sm">{errors.genres}</p>}
+              <div className="space-y-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  name="description"
+                  value={formData.description}
+                  onChange={handleInputChange}
+                  rows={5}
+                  required
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Genres</Label>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  {GENRES.map((genre) => (
+                    <div key={genre} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`genre-${genre}`}
+                        checked={formData.genres.includes(genre)}
+                        onCheckedChange={() => handleGenreToggle(genre)}
+                      />
+                      <label
+                        htmlFor={`genre-${genre}`}
+                        className="text-sm cursor-pointer"
+                      >
+                        {genre}
+                      </label>
                     </div>
-                    
-                    <div className="grid grid-cols-2 gap-2">
-                      {allGenres.map((genre) => (
-                        <div key={genre} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={`genre-${genre}`}
-                            checked={formData.genres.includes(genre)}
-                            onCheckedChange={() => handleGenreToggle(genre)}
-                          />
-                          <Label
-                            htmlFor={`genre-${genre}`}
-                            className="text-sm cursor-pointer"
-                          >
-                            {genre}
-                          </Label>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-          
-          <div className="flex justify-end gap-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => navigate('/admin/manga')}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={createManga.isPending || updateManga.isPending}
-            >
-              <Save className="mr-2 h-4 w-4" />
-              {createManga.isPending || updateManga.isPending
-                ? 'Saving...'
-                : 'Save Manga'}
-            </Button>
-          </div>
+                  ))}
+                </div>
+              </div>
+              
+              <div className="flex justify-end space-x-4 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => navigate("/admin/manga")}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={saving}>
+                  {saving ? "Saving..." : isEditMode ? "Update Manga" : "Create Manga"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </form>
-      )}
+      </div>
     </AdminLayout>
   );
-}
+};
+
+export default MangaForm;

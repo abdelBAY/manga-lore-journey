@@ -1,193 +1,165 @@
 
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import AdminLayout from '@/components/AdminLayout';
-import { useAdminManga } from '@/hooks/useAdmin';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { 
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow 
-} from '@/components/ui/table';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Badge } from '@/components/ui/badge';
-import { Plus, MoreVertical, Pencil, Trash, Eye, Search, X } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import AdminLayout from "@/components/AdminLayout";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { fetchAllManga, deleteManga } from "@/lib/admin-api";
+import { Manga } from "@/lib/types";
+import { Edit, Trash2, PlusCircle, BookOpen } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { useNavigate } from "react-router-dom";
+import { checkIsAdmin } from "@/lib/supabase";
 
-export default function MangaList() {
-  const navigate = useNavigate();
-  const { allManga, deleteManga } = useAdminManga();
-  const [searchQuery, setSearchQuery] = useState('');
+const MangaList = () => {
+  const [manga, setManga] = useState<Manga[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [mangaToDelete, setMangaToDelete] = useState<string | null>(null);
+  const [mangaToDelete, setMangaToDelete] = useState<Manga | null>(null);
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const navigate = useNavigate();
 
-  const handleDelete = (id: string) => {
-    setMangaToDelete(id);
+  const loadManga = async () => {
+    try {
+      const data = await fetchAllManga();
+      setManga(data);
+    } catch (err) {
+      setError("Failed to load manga. Please try again.");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const checkAdmin = async () => {
+      const admin = await checkIsAdmin();
+      setIsAdmin(admin);
+      if (!admin) {
+        navigate("/");
+      } else {
+        loadManga();
+      }
+    };
+
+    checkAdmin();
+  }, [navigate]);
+
+  const handleDeleteClick = (manga: Manga) => {
+    setMangaToDelete(manga);
     setDeleteDialogOpen(true);
   };
 
   const confirmDelete = async () => {
-    if (mangaToDelete) {
-      await deleteManga.mutateAsync(mangaToDelete);
+    if (!mangaToDelete) return;
+    
+    try {
+      const success = await deleteManga(mangaToDelete.id);
+      if (success) {
+        setManga(manga.filter(m => m.id !== mangaToDelete.id));
+      }
+    } catch (err) {
+      console.error("Error deleting manga:", err);
+    } finally {
       setDeleteDialogOpen(false);
       setMangaToDelete(null);
     }
   };
 
-  const filteredManga = allManga.data?.filter(manga => 
-    manga.title.toLowerCase().includes(searchQuery.toLowerCase())
-  ) || [];
+  if (isAdmin === null) {
+    return <div className="flex items-center justify-center min-h-screen">
+      <div className="text-xl">Loading...</div>
+    </div>;
+  }
 
   return (
-    <AdminLayout title="Manage Manga">
-      <div className="mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="relative w-full sm:w-64">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search manga..."
-            className="pl-10 pr-10"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          {searchQuery && (
-            <button 
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              onClick={() => setSearchQuery('')}
-            >
-              <X className="h-4 w-4" />
-            </button>
-          )}
+    <AdminLayout>
+      <div className="container mx-auto py-6">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold">Manga List</h1>
+          <Button asChild>
+            <Link to="/admin/manga/new"><PlusCircle className="mr-2 h-4 w-4" /> Add New Manga</Link>
+          </Button>
         </div>
-        <Button onClick={() => navigate('/admin/manga/new')}>
-          <Plus className="mr-2 h-4 w-4" /> Add Manga
-        </Button>
-      </div>
 
-      <div className="rounded-md border bg-card/50">
-        {allManga.isLoading ? (
-          <div className="h-60 flex items-center justify-center">
-            <p className="text-white/50">Loading manga...</p>
+        {loading ? (
+          <div className="text-center py-10">Loading manga...</div>
+        ) : error ? (
+          <div className="text-center text-red-500 py-10">{error}</div>
+        ) : manga.length === 0 ? (
+          <div className="text-center py-10">
+            <p className="text-lg mb-4">No manga found in the database.</p>
+            <Button asChild>
+              <Link to="/admin/manga/new">Add Your First Manga</Link>
+            </Button>
           </div>
-        ) : filteredManga.length > 0 ? (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[80px]">Cover</TableHead>
-                <TableHead>Title</TableHead>
-                <TableHead>Author</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Genres</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredManga.map((manga) => (
-                <TableRow key={manga.id}>
-                  <TableCell>
-                    <div className="h-12 w-8 overflow-hidden rounded">
+        ) : (
+          <div className="grid gap-6">
+            {manga.map((item) => (
+              <Card key={item.id}>
+                <CardContent className="p-4">
+                  <div className="flex items-center space-x-4">
+                    <div className="h-16 w-12 overflow-hidden rounded">
                       <img 
-                        src={manga.coverImage} 
-                        alt={manga.title} 
+                        src={item.coverImage || "/placeholder.svg"} 
+                        alt={item.title} 
                         className="h-full w-full object-cover"
                       />
                     </div>
-                  </TableCell>
-                  <TableCell className="font-medium">{manga.title}</TableCell>
-                  <TableCell>{manga.author}</TableCell>
-                  <TableCell>
-                    <Badge 
-                      variant={
-                        manga.status === 'ongoing' ? 'default' : 
-                        manga.status === 'completed' ? 'secondary' : 
-                        'outline'
-                      }
-                    >
-                      {manga.status.charAt(0).toUpperCase() + manga.status.slice(1)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap gap-1">
-                      {manga.genres.slice(0, 2).map((genre) => (
-                        <Badge key={genre} variant="outline" className="text-xs">
-                          {genre}
-                        </Badge>
-                      ))}
-                      {manga.genres.length > 2 && (
-                        <Badge variant="outline" className="text-xs">
-                          +{manga.genres.length - 2}
-                        </Badge>
-                      )}
+                    <div className="flex-1">
+                      <h3 className="font-bold">{item.title}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        By {item.author} • {item.status} • {item.releaseYear}
+                      </p>
                     </div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreVertical className="h-4 w-4" />
-                          <span className="sr-only">Open menu</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => navigate(`/manga/${manga.id}`)}>
-                          <Eye className="mr-2 h-4 w-4" /> View
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => navigate(`/admin/manga/${manga.id}`)}>
-                          <Pencil className="mr-2 h-4 w-4" /> Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          className="text-destructive focus:text-destructive"
-                          onClick={() => handleDelete(manga.id)}
-                        >
-                          <Trash className="mr-2 h-4 w-4" /> Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        ) : (
-          <div className="h-60 flex flex-col items-center justify-center">
-            <p className="text-white/50 mb-4">
-              {searchQuery ? 'No manga found matching your search' : 'No manga available'}
-            </p>
-            {!searchQuery && (
-              <Button onClick={() => navigate('/admin/manga/new')}>Add Your First Manga</Button>
-            )}
+                    <div className="flex space-x-2">
+                      <Button variant="outline" size="icon" asChild>
+                        <Link to={`/admin/manga/${item.id}`}>
+                          <Edit className="h-4 w-4" />
+                        </Link>
+                      </Button>
+                      <Button variant="outline" size="icon" asChild>
+                        <Link to={`/admin/chapters?mangaId=${item.id}`}>
+                          <BookOpen className="h-4 w-4" />
+                        </Link>
+                      </Button>
+                      <Button 
+                        variant="destructive" 
+                        size="icon" 
+                        onClick={() => handleDeleteClick(item)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         )}
-      </div>
 
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirm Deletion</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete this manga? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={confirmDelete} disabled={deleteManga.isPending}>
-              {deleteManga.isPending ? 'Deleting...' : 'Delete'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Confirm Deletion</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to delete "{mangaToDelete?.title}"? This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button variant="destructive" onClick={confirmDelete}>
+                Delete
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
     </AdminLayout>
   );
-}
+};
+
+export default MangaList;

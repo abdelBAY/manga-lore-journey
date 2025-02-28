@@ -1,185 +1,261 @@
 
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import AdminLayout from '@/components/AdminLayout';
-import { useAdminManga, useAdminChapters } from '@/hooks/useAdmin';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { 
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow 
-} from '@/components/ui/table';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Plus, MoreVertical, Pencil, Trash, Eye, BookOpen } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { useState, useEffect } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import AdminLayout from "@/components/AdminLayout";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { fetchChaptersByMangaId, deleteChapter, fetchAllManga } from "@/lib/admin-api";
+import { Chapter, Manga } from "@/lib/types";
+import { Edit, Trash2, PlusCircle, ArrowLeft } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { checkIsAdmin } from "@/lib/supabase";
+import { format } from "date-fns";
 
-export default function ChapterList() {
+const ChapterList = () => {
+  const location = useLocation();
   const navigate = useNavigate();
-  const { allManga } = useAdminManga();
-  const [selectedMangaId, setSelectedMangaId] = useState<string>('');
-  const { chapters, deleteChapter } = useAdminChapters(selectedMangaId || undefined);
+  const { toast } = useToast();
   
+  const [chapters, setChapters] = useState<Chapter[]>([]);
+  const [manga, setManga] = useState<Manga[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [chapterToDelete, setChapterToDelete] = useState<string | null>(null);
+  const [chapterToDelete, setChapterToDelete] = useState<Chapter | null>(null);
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  
+  const searchParams = new URLSearchParams(location.search);
+  const queryMangaId = searchParams.get('mangaId');
+  const [selectedMangaId, setSelectedMangaId] = useState<string | null>(queryMangaId);
+  
+  const currentManga = manga.find(m => m.id === selectedMangaId);
+
+  const loadManga = async () => {
+    try {
+      const data = await fetchAllManga();
+      setManga(data);
+      return data;
+    } catch (err) {
+      setError("Failed to load manga list.");
+      console.error(err);
+      return [];
+    }
+  };
+
+  const loadChapters = async (mangaId: string) => {
+    setLoading(true);
+    try {
+      const data = await fetchChaptersByMangaId(mangaId);
+      setChapters(data);
+      setError(null);
+    } catch (err) {
+      setError("Failed to load chapters. Please try again.");
+      console.error(err);
+      setChapters([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    if (allManga.data && allManga.data.length > 0 && !selectedMangaId) {
-      setSelectedMangaId(allManga.data[0].id);
-    }
-  }, [allManga.data, selectedMangaId]);
+    const checkAdmin = async () => {
+      const admin = await checkIsAdmin();
+      setIsAdmin(admin);
+      if (!admin) {
+        navigate("/");
+      } else {
+        const mangaList = await loadManga();
+        
+        if (queryMangaId) {
+          const exists = mangaList.some(m => m.id === queryMangaId);
+          if (exists) {
+            setSelectedMangaId(queryMangaId);
+            loadChapters(queryMangaId);
+          } else {
+            setSelectedMangaId(null);
+            setLoading(false);
+          }
+        } else {
+          setLoading(false);
+        }
+      }
+    };
 
-  const handleDelete = (id: string) => {
-    setChapterToDelete(id);
+    checkAdmin();
+  }, [navigate, queryMangaId]);
+
+  const handleMangaChange = (mangaId: string) => {
+    setSelectedMangaId(mangaId);
+    navigate(`/admin/chapters?mangaId=${mangaId}`);
+    loadChapters(mangaId);
+  };
+
+  const handleDeleteClick = (chapter: Chapter) => {
+    setChapterToDelete(chapter);
     setDeleteDialogOpen(true);
   };
 
   const confirmDelete = async () => {
-    if (chapterToDelete) {
-      await deleteChapter.mutateAsync(chapterToDelete);
+    if (!chapterToDelete) return;
+    
+    try {
+      const success = await deleteChapter(chapterToDelete.id);
+      if (success) {
+        setChapters(chapters.filter(c => c.id !== chapterToDelete.id));
+        toast({
+          title: "Success",
+          description: "Chapter deleted successfully.",
+        });
+      }
+    } catch (err) {
+      console.error("Error deleting chapter:", err);
+      toast({
+        title: "Error",
+        description: "Failed to delete chapter.",
+        variant: "destructive",
+      });
+    } finally {
       setDeleteDialogOpen(false);
       setChapterToDelete(null);
     }
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    }).format(date);
-  };
+  if (isAdmin === null) {
+    return <div className="flex items-center justify-center min-h-screen">
+      <div className="text-xl">Loading...</div>
+    </div>;
+  }
 
   return (
-    <AdminLayout title="Manage Chapters">
-      <div className="mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="w-full sm:w-64">
-          <Select
-            value={selectedMangaId}
-            onValueChange={setSelectedMangaId}
-            disabled={allManga.isLoading || !allManga.data || allManga.data.length === 0}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select a manga" />
-            </SelectTrigger>
-            <SelectContent>
-              {allManga.data?.map((manga) => (
-                <SelectItem key={manga.id} value={manga.id}>
-                  {manga.title}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+    <AdminLayout>
+      <div className="container mx-auto py-6">
+        <div className="flex justify-between items-center mb-6">
+          <div className="flex items-center">
+            <h1 className="text-3xl font-bold">Chapters</h1>
+            {currentManga && (
+              <span className="ml-2 text-sm bg-primary/10 text-primary px-2 py-1 rounded-md">
+                {currentManga.title}
+              </span>
+            )}
+          </div>
+          
+          <div className="flex space-x-2">
+            {currentManga && (
+              <Button variant="outline" asChild>
+                <Link to="/admin/chapters">
+                  <ArrowLeft className="mr-2 h-4 w-4" /> All Manga
+                </Link>
+              </Button>
+            )}
+            
+            <Button asChild disabled={!selectedMangaId}>
+              <Link to={selectedMangaId ? `/admin/chapters/new?mangaId=${selectedMangaId}` : "#"}>
+                <PlusCircle className="mr-2 h-4 w-4" /> Add New Chapter
+              </Link>
+            </Button>
+          </div>
         </div>
-        <Button onClick={() => navigate('/admin/chapters/new')}>
-          <Plus className="mr-2 h-4 w-4" /> Add Chapter
-        </Button>
-      </div>
 
-      <div className="rounded-md border bg-card/50">
-        {allManga.isLoading ? (
-          <div className="h-60 flex items-center justify-center">
-            <p className="text-white/50">Loading manga...</p>
+        <Card className="mb-6">
+          <CardContent className="pt-6">
+            <div className="space-y-1">
+              <label className="text-sm font-medium">Select Manga</label>
+              <Select
+                value={selectedMangaId || ""}
+                onValueChange={handleMangaChange}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a manga to manage chapters" />
+                </SelectTrigger>
+                <SelectContent>
+                  {manga.map((item) => (
+                    <SelectItem key={item.id} value={item.id}>
+                      {item.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+
+        {!selectedMangaId ? (
+          <div className="text-center py-10">
+            <p className="text-lg mb-4">Select a manga to manage its chapters.</p>
           </div>
-        ) : !allManga.data || allManga.data.length === 0 ? (
-          <div className="h-60 flex flex-col items-center justify-center">
-            <p className="text-white/50 mb-4">No manga available</p>
-            <Button onClick={() => navigate('/admin/manga/new')}>Add Your First Manga</Button>
-          </div>
-        ) : chapters.isLoading ? (
-          <div className="h-60 flex items-center justify-center">
-            <p className="text-white/50">Loading chapters...</p>
-          </div>
-        ) : !chapters.data || chapters.data.length === 0 ? (
-          <div className="h-60 flex flex-col items-center justify-center">
-            <p className="text-white/50 mb-4">No chapters available for this manga</p>
-            <Button onClick={() => navigate('/admin/chapters/new')}>Add First Chapter</Button>
+        ) : loading ? (
+          <div className="text-center py-10">Loading chapters...</div>
+        ) : error ? (
+          <div className="text-center text-red-500 py-10">{error}</div>
+        ) : chapters.length === 0 ? (
+          <div className="text-center py-10">
+            <p className="text-lg mb-4">No chapters found for this manga.</p>
+            <Button asChild>
+              <Link to={`/admin/chapters/new?mangaId=${selectedMangaId}`}>Add Your First Chapter</Link>
+            </Button>
           </div>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Chapter #</TableHead>
-                <TableHead>Title</TableHead>
-                <TableHead>Release Date</TableHead>
-                <TableHead>Pages</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {chapters.data.map((chapter) => (
-                <TableRow key={chapter.id}>
-                  <TableCell className="font-medium">Chapter {chapter.number}</TableCell>
-                  <TableCell>{chapter.title}</TableCell>
-                  <TableCell>{formatDate(chapter.releaseDate)}</TableCell>
-                  <TableCell>{chapter.pages.length} pages</TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreVertical className="h-4 w-4" />
-                          <span className="sr-only">Open menu</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => navigate(`/manga/${chapter.mangaId}/chapter/${chapter.id}`)}>
-                          <Eye className="mr-2 h-4 w-4" /> View
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => navigate(`/admin/chapters/${chapter.id}`)}>
-                          <Pencil className="mr-2 h-4 w-4" /> Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          className="text-destructive focus:text-destructive"
-                          onClick={() => handleDelete(chapter.id)}
-                        >
-                          <Trash className="mr-2 h-4 w-4" /> Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <div className="grid gap-4">
+            {chapters.map((chapter) => (
+              <Card key={chapter.id}>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="flex items-center space-x-2">
+                        <span className="font-bold">Chapter {chapter.number}</span>
+                        <span className="text-lg">-</span>
+                        <span>{chapter.title}</span>
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        Released: {format(new Date(chapter.releaseDate), "PPP")}
+                        {" • "} 
+                        {chapter.pages.length} pages
+                      </div>
+                    </div>
+                    <div className="flex space-x-2">
+                      <Button variant="outline" size="sm" asChild>
+                        <Link to={`/admin/chapters/${chapter.id}`}>
+                          <Edit className="mr-2 h-4 w-4" /> Edit
+                        </Link>
+                      </Button>
+                      <Button 
+                        variant="destructive" 
+                        size="sm"
+                        onClick={() => handleDeleteClick(chapter)}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" /> Delete
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         )}
-      </div>
 
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirm Deletion</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete this chapter? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={confirmDelete} disabled={deleteChapter.isPending}>
-              {deleteChapter.isPending ? 'Deleting...' : 'Delete'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Confirm Deletion</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to delete Chapter {chapterToDelete?.number}: "{chapterToDelete?.title}"? This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button variant="destructive" onClick={confirmDelete}>
+                Delete
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
     </AdminLayout>
   );
-}
+};
+
+export default ChapterList;
