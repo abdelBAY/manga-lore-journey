@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import AdminLayout from "@/components/AdminLayout";
@@ -175,7 +174,7 @@ const MangaForm = () => {
   }
 
   return (
-    <AdminLayout>
+    <AdminLayout title={id ? "Edit Manga" : "Create Manga"}>
       <div className="container mx-auto py-6">
         <h1 className="text-3xl font-bold mb-6">
           {isEditMode ? "Edit Manga" : "Add New Manga"}

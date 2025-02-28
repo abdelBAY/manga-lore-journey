@@ -72,7 +72,7 @@ const AdminSettings = () => {
   }
 
   return (
-    <AdminLayout>
+    <AdminLayout title="Admin Settings">
       <div className="container mx-auto py-6">
         <h1 className="text-3xl font-bold mb-6">Admin Settings</h1>
         

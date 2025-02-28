@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import AdminLayout from "@/components/AdminLayout";
@@ -74,7 +73,7 @@ const MangaList = () => {
   }
 
   return (
-    <AdminLayout>
+    <AdminLayout title="Manga List">
       <div className="container mx-auto py-6">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold">Manga List</h1>

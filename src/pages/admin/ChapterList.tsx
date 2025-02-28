@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import AdminLayout from "@/components/AdminLayout";
@@ -129,7 +128,7 @@ const ChapterList = () => {
   }
 
   return (
-    <AdminLayout>
+    <AdminLayout title="Chapter List">
       <div className="container mx-auto py-6">
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center">
