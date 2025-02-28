@@ -1,10 +1,10 @@
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api } from "@/lib/api";
-import { User } from "@/lib/types";
+import { useState, useEffect, createContext, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
-import { useState, useEffect, createContext, useContext } from "react";
+import { User } from "@/lib/types";
+import { supabase } from "@/lib/supabase";
+import { Session } from "@supabase/supabase-js";
 
 type AuthContextType = {
   user: User | null;
@@ -20,43 +20,121 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const queryClient = useQueryClient();
   const navigate = useNavigate();
 
   useEffect(() => {
-    const loadUser = async () => {
+    // Initial session check
+    const checkUser = async () => {
+      setIsLoading(true);
+      
       try {
-        const currentUser = await api.getCurrentUser();
-        setUser(currentUser);
+        // Get session data
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          await updateUserData(session);
+        }
       } catch (error) {
-        console.error("Failed to load user:", error);
+        console.error("Error checking auth state:", error);
       } finally {
         setIsLoading(false);
       }
     };
 
-    loadUser();
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === 'SIGNED_IN' && session) {
+          await updateUserData(session);
+        } else if (event === 'SIGNED_OUT') {
+          setUser(null);
+        }
+      }
+    );
+
+    checkUser();
+
+    // Cleanup subscription on unmount
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
+
+  // Helper to update user data when authentication state changes
+  const updateUserData = async (session: Session) => {
+    if (!session?.user) return null;
+    
+    try {
+      // Transform Supabase user to our User type
+      const userData: User = {
+        id: session.user.id,
+        email: session.user.email || '',
+        username: session.user.user_metadata?.username || session.user.email?.split('@')[0] || 'User',
+        favorites: []
+      };
+      
+      // Check if there are any favorites
+      const { data: favorites } = await supabase
+        .from('favorites')
+        .select('manga_id')
+        .eq('user_id', userData.id);
+      
+      if (favorites && favorites.length > 0) {
+        userData.favorites = favorites.map(f => f.manga_id);
+      }
+      
+      setUser(userData);
+      return userData;
+    } catch (error) {
+      console.error("Error updating user data:", error);
+      return null;
+    }
+  };
 
   const login = async (email: string, password: string) => {
     try {
-      const loggedInUser = await api.login(email, password);
-      setUser(loggedInUser);
-      queryClient.invalidateQueries({ queryKey: ["favorites"] });
-      
-      if (loggedInUser) {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (data.user) {
+        const userData: User = {
+          id: data.user.id,
+          email: data.user.email || '',
+          username: data.user.user_metadata?.username || data.user.email?.split('@')[0] || 'User',
+          favorites: []
+        };
+        
+        // Fetch favorites if any
+        const { data: favorites } = await supabase
+          .from('favorites')
+          .select('manga_id')
+          .eq('user_id', userData.id);
+        
+        if (favorites && favorites.length > 0) {
+          userData.favorites = favorites.map(f => f.manga_id);
+        }
+        
+        setUser(userData);
+        
         toast({
           title: "Success",
           description: "Successfully logged in",
         });
+        
+        return userData;
       }
       
-      return loggedInUser;
-    } catch (error) {
+      return null;
+    } catch (error: any) {
       console.error("Login failed:", error);
       toast({
         title: "Error",
-        description: "Login failed",
+        description: error.message || "Login failed",
         variant: "destructive",
       });
       return null;
@@ -65,22 +143,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const register = async (username: string, email: string, password: string) => {
     try {
-      const newUser = await api.register(username, email, password);
-      setUser(newUser);
-      
-      if (newUser) {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { username }
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (data.user) {
+        const userData: User = {
+          id: data.user.id,
+          email: data.user.email || '',
+          username: username || data.user.email?.split('@')[0] || 'User',
+          favorites: []
+        };
+        
+        setUser(userData);
+        
         toast({
           title: "Success",
-          description: "Registration successful",
+          description: "Registration successful! Please verify your email if required.",
         });
+        
+        return userData;
       }
       
-      return newUser;
-    } catch (error) {
+      return null;
+    } catch (error: any) {
       console.error("Registration failed:", error);
       toast({
         title: "Error",
-        description: "Registration failed",
+        description: error.message || "Registration failed",
         variant: "destructive",
       });
       return null;
@@ -89,19 +187,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
-      await api.logout();
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        throw error;
+      }
+      
       setUser(null);
-      queryClient.invalidateQueries({ queryKey: ["favorites"] });
       navigate("/");
       toast({
         title: "Success",
         description: "Successfully logged out",
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Logout failed:", error);
       toast({
         title: "Error",
-        description: "Logout failed",
+        description: error.message || "Logout failed",
         variant: "destructive",
       });
     }

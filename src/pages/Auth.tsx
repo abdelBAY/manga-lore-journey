@@ -6,15 +6,15 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 export default function Auth() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
   
   // Redirect to home if already authenticated
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && !isLoading) {
       navigate("/");
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, navigate, isLoading]);
   
   return (
     <div className="min-h-screen bg-background">
