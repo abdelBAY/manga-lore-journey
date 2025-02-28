@@ -26,6 +26,7 @@ export interface User {
   username: string;
   email: string;
   favorites: string[];
+  role?: 'user' | 'admin';
 }
 
 export type Genre = 
@@ -48,4 +49,24 @@ export interface SearchFilters {
   genres: Genre[];
   status?: 'ongoing' | 'completed' | 'hiatus';
   sortBy: 'popularity' | 'latest' | 'alphabetical';
+}
+
+export interface AdminMangaFormData {
+  title: string;
+  coverImage: string;
+  description: string;
+  status: 'ongoing' | 'completed' | 'hiatus';
+  genres: Genre[];
+  author: string;
+  artist: string;
+  releaseYear: number;
+  rating: number;
+}
+
+export interface AdminChapterFormData {
+  mangaId: string;
+  number: number;
+  title: string;
+  releaseDate: string;
+  pages: string[];
 }
