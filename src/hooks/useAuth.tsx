@@ -90,7 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string): Promise<User | null> => {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -132,16 +132,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return null;
     } catch (error: any) {
       console.error("Login failed:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Login failed",
-        variant: "destructive",
-      });
-      return null;
+      throw error; // Re-throw the error so it can be handled by the login component
     }
   };
 
-  const register = async (username: string, email: string, password: string) => {
+  const register = async (username: string, email: string, password: string): Promise<User | null> => {
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -176,12 +171,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return null;
     } catch (error: any) {
       console.error("Registration failed:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Registration failed",
-        variant: "destructive",
-      });
-      return null;
+      throw error; // Re-throw the error so it can be handled by the register component
     }
   };
 

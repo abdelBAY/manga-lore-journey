@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -39,22 +38,12 @@ export default function AuthForm() {
     setIsLoading(true);
     
     try {
-      const user = await login(loginEmail, loginPassword);
-      
-      if (user) {
-        navigate("/");
-      } else {
-        toast({
-          title: "Error",
-          description: "Invalid email or password",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
+      await login(loginEmail, loginPassword);
+    } catch (error: any) {
       console.error("Login error:", error);
       toast({
         title: "Error",
-        description: "An error occurred during login",
+        description: error?.message || "An error occurred during login",
         variant: "destructive",
       });
     } finally {
@@ -95,22 +84,12 @@ export default function AuthForm() {
     setIsLoading(true);
     
     try {
-      const user = await register(registerUsername, registerEmail, registerPassword);
-      
-      if (user) {
-        navigate("/");
-      } else {
-        toast({
-          title: "Error",
-          description: "Registration failed. Email might already be in use.",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
+      await register(registerUsername, registerEmail, registerPassword);
+    } catch (error: any) {
       console.error("Registration error:", error);
       toast({
         title: "Error",
-        description: "An error occurred during registration",
+        description: error?.message || "An error occurred during registration",
         variant: "destructive",
       });
     } finally {

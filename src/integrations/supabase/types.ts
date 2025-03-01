@@ -318,18 +318,32 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      is_admin: {
-        Args: {
-          uid: string
-        }
-        Returns: boolean
-      }
-      set_user_admin: {
-        Args: {
-          email: string
-        }
-        Returns: undefined
-      }
+      is_admin:
+        | {
+            Args: {
+              uid: string
+            }
+            Returns: boolean
+          }
+        | {
+            Args: {
+              user_id: number
+            }
+            Returns: boolean
+          }
+      set_user_admin:
+        | {
+            Args: {
+              email: string
+            }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              user_id: number
+            }
+            Returns: undefined
+          }
     }
     Enums: {
       booking_status: "pending" | "confirmed" | "completed" | "cancelled"
