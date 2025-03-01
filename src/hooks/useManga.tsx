@@ -11,6 +11,13 @@ export function useAllManga() {
   });
 }
 
+export function useRecentlyUpdatedManga() {
+  return useQuery({
+    queryKey: ["manga", "recent"],
+    queryFn: api.getRecentlyUpdatedManga,
+  });
+}
+
 export function useMangaById(id: string) {
   return useQuery({
     queryKey: ["manga", id],

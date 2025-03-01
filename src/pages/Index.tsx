@@ -6,13 +6,13 @@ import MangaGrid from "@/components/MangaGrid";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ChevronRight } from "lucide-react";
-import { useAllManga } from "@/hooks/useManga";
+import { useAllManga, useRecentlyUpdatedManga } from "@/hooks/useManga";
 
 export default function Index() {
   const { data: manga, isLoading } = useAllManga();
+  const { data: recentManga, isLoading: isRecentLoading } = useRecentlyUpdatedManga();
   const [featuredManga, setFeaturedManga] = useState<typeof manga>([]); 
   const [popularManga, setPopularManga] = useState<typeof manga>([]);
-  const [recentlyUpdated, setRecentlyUpdated] = useState<typeof manga>([]);
   
   useEffect(() => {
     if (manga) {
@@ -22,9 +22,6 @@ export default function Index() {
       
       // Sort by rating for popular manga
       setPopularManga([...manga].sort((a, b) => b.rating - a.rating).slice(0, 5));
-      
-      // Get recently updated manga (in a real app, this would be based on chapter updates)
-      setRecentlyUpdated([...manga].sort(() => 0.5 - Math.random()).slice(0, 10));
     }
   }, [manga]);
 
@@ -91,8 +88,8 @@ export default function Index() {
             </Link>
           </div>
           <MangaGrid 
-            manga={recentlyUpdated || []} 
-            isLoading={isLoading} 
+            manga={recentManga || []} 
+            isLoading={isRecentLoading} 
           />
         </section>
       </main>

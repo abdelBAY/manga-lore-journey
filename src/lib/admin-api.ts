@@ -57,6 +57,8 @@ export const fetchMangaById = async (id: string): Promise<Manga | null> => {
 };
 
 export const createManga = async (mangaData: AdminMangaFormData): Promise<Manga | null> => {
+  const now = new Date().toISOString();
+  
   const { data, error } = await supabase
     .from('manga')
     .insert({
@@ -68,7 +70,9 @@ export const createManga = async (mangaData: AdminMangaFormData): Promise<Manga 
       author: mangaData.author,
       artist: mangaData.artist,
       release_year: mangaData.releaseYear,
-      rating: mangaData.rating
+      rating: mangaData.rating,
+      created_at: now,
+      updated_at: now
     })
     .select()
     .single();
@@ -103,6 +107,8 @@ export const createManga = async (mangaData: AdminMangaFormData): Promise<Manga 
 };
 
 export const updateManga = async (id: string, mangaData: AdminMangaFormData): Promise<Manga | null> => {
+  const now = new Date().toISOString();
+  
   const { data, error } = await supabase
     .from('manga')
     .update({
@@ -115,7 +121,7 @@ export const updateManga = async (id: string, mangaData: AdminMangaFormData): Pr
       artist: mangaData.artist,
       release_year: mangaData.releaseYear,
       rating: mangaData.rating,
-      updated_at: new Date().toISOString()
+      updated_at: now
     })
     .eq('id', id)
     .select()
