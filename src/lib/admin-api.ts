@@ -1,59 +1,78 @@
-
 import { supabase } from './supabase';
 import { AdminMangaFormData, AdminChapterFormData, Manga, Chapter } from './types';
 import { toast } from '@/hooks/use-toast';
+import { api } from './api';
 
 // Manga CRUD operations
 export const fetchAllManga = async (): Promise<Manga[]> => {
-  const { data, error } = await supabase
-    .from('manga')
-    .select('*');
-  
-  if (error) {
-    console.error('Error fetching manga:', error);
-    throw error;
+  try {
+    const { data, error } = await supabase
+      .from('manga')
+      .select('*');
+    
+    if (error) {
+      console.error('Error fetching manga from Supabase:', error);
+      console.log('Falling back to mock data');
+      return await api.getAllManga();
+    }
+    
+    if (!data || data.length === 0) {
+      console.log('No data from Supabase, using mock data instead');
+      return await api.getAllManga();
+    }
+    
+    return data.map(item => ({
+      id: item.id,
+      title: item.title,
+      coverImage: item.cover_image,
+      description: item.description,
+      status: item.status,
+      genres: item.genres,
+      author: item.author,
+      artist: item.artist,
+      releaseYear: item.release_year,
+      rating: item.rating
+    }));
+  } catch (err) {
+    console.error('Error in fetchAllManga:', err);
+    return await api.getAllManga();
   }
-  
-  return (data || []).map(item => ({
-    id: item.id,
-    title: item.title,
-    coverImage: item.cover_image,
-    description: item.description,
-    status: item.status,
-    genres: item.genres,
-    author: item.author,
-    artist: item.artist,
-    releaseYear: item.release_year,
-    rating: item.rating
-  }));
 };
 
 export const fetchMangaById = async (id: string): Promise<Manga | null> => {
-  const { data, error } = await supabase
-    .from('manga')
-    .select('*')
-    .eq('id', id)
-    .single();
-  
-  if (error) {
-    console.error('Error fetching manga by id:', error);
-    return null;
+  try {
+    const { data, error } = await supabase
+      .from('manga')
+      .select('*')
+      .eq('id', id)
+      .single();
+    
+    if (error) {
+      console.error('Error fetching manga by id from Supabase:', error);
+      const mockManga = await api.getMangaById(id);
+      return mockManga;
+    }
+    
+    if (!data) {
+      return await api.getMangaById(id);
+    }
+    
+    return {
+      id: data.id,
+      title: data.title,
+      coverImage: data.cover_image,
+      description: data.description,
+      status: data.status,
+      genres: data.genres,
+      author: data.author,
+      artist: data.artist,
+      releaseYear: data.release_year,
+      rating: data.rating
+    };
+  } catch (err) {
+    console.error('Error in fetchMangaById:', err);
+    return await api.getMangaById(id);
   }
-  
-  if (!data) return null;
-  
-  return {
-    id: data.id,
-    title: data.title,
-    coverImage: data.cover_image,
-    description: data.description,
-    status: data.status,
-    genres: data.genres,
-    author: data.author,
-    artist: data.artist,
-    releaseYear: data.release_year,
-    rating: data.rating
-  };
 };
 
 export const createManga = async (mangaData: AdminMangaFormData): Promise<Manga | null> => {

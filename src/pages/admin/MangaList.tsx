@@ -11,6 +11,7 @@ import { useNavigate } from "react-router-dom";
 import { checkIsAdmin } from "@/lib/supabase";
 import MangaGrid from "@/components/MangaGrid";
 import { Card } from "@/components/ui/card";
+import { toast } from "@/hooks/use-toast";
 
 const MangaList = () => {
   const [manga, setManga] = useState<Manga[]>([]);
@@ -23,11 +24,14 @@ const MangaList = () => {
 
   const loadManga = async () => {
     try {
+      setLoading(true);
       const data = await fetchAllManga();
+      console.log("Loaded manga data:", data);
       setManga(data);
+      setError(null);
     } catch (err) {
+      console.error("Failed to load manga:", err);
       setError("Failed to load manga. Please try again.");
-      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -35,12 +39,23 @@ const MangaList = () => {
 
   useEffect(() => {
     const checkAdmin = async () => {
-      const admin = await checkIsAdmin();
-      setIsAdmin(admin);
-      if (!admin) {
+      try {
+        const admin = await checkIsAdmin();
+        setIsAdmin(admin);
+        if (!admin) {
+          toast({
+            title: "Access Denied",
+            description: "You don't have admin permissions.",
+            variant: "destructive",
+          });
+          navigate("/");
+        } else {
+          loadManga();
+        }
+      } catch (error) {
+        console.error("Error checking admin status:", error);
+        setIsAdmin(false);
         navigate("/");
-      } else {
-        loadManga();
       }
     };
 
@@ -59,9 +74,18 @@ const MangaList = () => {
       const success = await deleteManga(mangaToDelete.id);
       if (success) {
         setManga(manga.filter(m => m.id !== mangaToDelete.id));
+        toast({
+          title: "Success",
+          description: "Manga has been deleted successfully.",
+        });
       }
     } catch (err) {
       console.error("Error deleting manga:", err);
+      toast({
+        title: "Error",
+        description: "Failed to delete manga. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setDeleteDialogOpen(false);
       setMangaToDelete(null);
@@ -83,7 +107,7 @@ const MangaList = () => {
           isLoading={loading} 
           emptyMessage="No manga found in the database."
           renderOverlay={(item) => (
-            <div className="absolute top-2 right-2 flex space-x-2 bg-black/60 p-2 rounded">
+            <div className="absolute top-2 right-2 flex space-x-2 bg-black/60 p-2 rounded z-10">
               <Button variant="outline" size="icon" asChild className="h-8 w-8 bg-white/10">
                 <Link to={`/admin/manga/${item.id}`}>
                   <Edit className="h-4 w-4" />
