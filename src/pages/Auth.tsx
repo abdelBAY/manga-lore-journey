@@ -3,18 +3,23 @@ import Header from "@/components/Header";
 import AuthForm from "@/components/AuthForm";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 export default function Auth() {
   const { isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   
-  // Redirect to home if already authenticated
+  // Get the intended destination from state, or default to home
+  const from = location.state?.from || "/";
+  
+  // Redirect to home or intended page if already authenticated
   useEffect(() => {
     if (isAuthenticated && !isLoading) {
-      navigate("/");
+      // Replace instead of push to avoid back-button issues
+      navigate(from, { replace: true });
     }
-  }, [isAuthenticated, navigate, isLoading]);
+  }, [isAuthenticated, navigate, isLoading, from]);
   
   return (
     <div className="min-h-screen bg-background">

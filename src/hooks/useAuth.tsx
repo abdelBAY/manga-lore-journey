@@ -1,6 +1,6 @@
 
 import { useState, useEffect, createContext, useContext } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 import { User } from "@/lib/types";
 import { supabase } from "@/lib/supabase";
@@ -21,6 +21,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     // Initial session check
@@ -126,6 +127,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           description: "Successfully logged in",
         });
         
+        // Get intended destination or default to home
+        const from = location.state?.from || "/";
+        navigate(from, { replace: true });
+        
         return userData;
       }
       
@@ -165,6 +170,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           description: "Registration successful! Please verify your email if required.",
         });
         
+        // Navigate to home page after registration
+        navigate("/", { replace: true });
+        
         return userData;
       }
       
@@ -184,7 +192,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       
       setUser(null);
-      navigate("/");
+      // Use replace to clear the navigation stack
+      navigate("/", { replace: true });
       toast({
         title: "Success",
         description: "Successfully logged out",

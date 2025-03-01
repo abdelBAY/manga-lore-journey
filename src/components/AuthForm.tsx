@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -39,6 +40,7 @@ export default function AuthForm() {
     
     try {
       await login(loginEmail, loginPassword);
+      // Navigation is now handled in the login function
     } catch (error: any) {
       console.error("Login error:", error);
       toast({
@@ -85,6 +87,7 @@ export default function AuthForm() {
     
     try {
       await register(registerUsername, registerEmail, registerPassword);
+      // Navigation is now handled in the register function
     } catch (error: any) {
       console.error("Registration error:", error);
       toast({
