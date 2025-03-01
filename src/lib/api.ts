@@ -1,4 +1,3 @@
-
 import { Chapter, Manga, SearchFilters, User } from './types';
 
 // Mock data for development purposes
@@ -156,8 +155,7 @@ const MOCK_CHAPTERS: { [key: string]: Chapter[] } = {
     number: i+1,
     title: `Chapter ${i+1}`,
     releaseDate: new Date(2020, i % 12, i + 1).toISOString(),
-    pages: Array.from({ length:
-    20 }, (_, j) => `https://source.unsplash.com/random/800x1200/?manga&id=7-${i+1}-${j+1}`)
+    pages: Array.from({ length: 20 }, (_, j) => `https://source.unsplash.com/random/800x1200/?manga&id=7-${i+1}-${j+1}`)
   })),
   '8': Array.from({ length: 19 }, (_, i) => ({
     id: `8-${i+1}`,
@@ -196,6 +194,15 @@ export const api = {
   async getAllManga(): Promise<Manga[]> {
     await delay(800);
     return MOCK_MANGA;
+  },
+  
+  async getRecentlyUpdatedManga(): Promise<Manga[]> {
+    await delay(800);
+    // For mock data, we'll simulate recently updated manga by returning a shuffled subset
+    // In a real API, this would fetch manga sorted by update timestamp
+    return [...MOCK_MANGA]
+      .sort(() => 0.5 - Math.random())
+      .slice(0, 10);
   },
 
   async getMangaById(id: string): Promise<Manga | null> {
