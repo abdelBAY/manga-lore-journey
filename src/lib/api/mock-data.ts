@@ -42,7 +42,7 @@ export const MOCK_MANGA: Manga[] = [
   {
     id: '4',
     title: 'My Hero Academia',
-    coverImage: 'https://m.media-amazon.com/images/I/81Ty+SbJ-6L._AC_UF1000,1000_QL80_.jpg',
+    coverImage: 'https://d28hgpri8am2if.cloudfront.net/book_images/onix/cvr9781974719778/my-hero-academia-vol-26-9781974719778_hr.jpg',
     description: 'A superhero-loving boy without any powers enrolls in a prestigious hero academy and learns what it really means to be a hero.',
     status: 'ongoing',
     genres: ['Action', 'Adventure', 'Comedy', 'Supernatural'],
@@ -54,7 +54,7 @@ export const MOCK_MANGA: Manga[] = [
   {
     id: '5',
     title: 'Jujutsu Kaisen',
-    coverImage: 'https://m.media-amazon.com/images/I/71iOCpBmjlL._AC_UF1000,1000_QL80_.jpg',
+    coverImage: 'https://static1.srcdn.com/wordpress/wp-content/uploads/wm/2024/04/yuji-and-sukuna-back-to-back-in-jujutssu-kaisen-with-yuji-surrounded-by-black-flash-sparks-and-sukuna-using-his-fire-arrow-techniqiue.jpg',
     description: 'A boy swallows a cursed talisman - the finger of a demon - and becomes cursed himself. He enters a shaman school to be able to locate the demon\'s other body parts and thus exorcise himself.',
     status: 'ongoing',
     genres: ['Action', 'Supernatural', 'Horror'],
@@ -66,7 +66,7 @@ export const MOCK_MANGA: Manga[] = [
   {
     id: '6',
     title: 'Chainsaw Man',
-    coverImage: 'https://m.media-amazon.com/images/I/81nKguXTVfL._AC_UF1000,1000_QL80_.jpg',
+    coverImage: 'https://static1.srcdn.com/wordpress/wp-content/uploads/2024/04/chainsaw-man-volume-11-cover.jpg',
     description: 'Denji has a simple dream—to live a happy and peaceful life, spending time with a girl he likes. This is a far cry from reality, however, as Denji is forced by the yakuza to kill devils to clear his crushing debts.',
     status: 'ongoing',
     genres: ['Action', 'Horror', 'Supernatural'],
@@ -90,7 +90,7 @@ export const MOCK_MANGA: Manga[] = [
   {
     id: '8',
     title: 'Tokyo Revengers',
-    coverImage: 'https://m.media-amazon.com/images/I/71YTlxltuLL._AC_UF1000,1000_QL80_.jpg',
+    coverImage: 'https://bang-dream-gbp-en.bushiroad.com/wordpress/wp-content/uploads/1_1200-x-630_new.png',
     description: 'A middle-aged loser travels back in time to save his ex-girlfriend from being murdered by a gang.',
     status: 'completed',
     genres: ['Action', 'Drama', 'Supernatural'],
