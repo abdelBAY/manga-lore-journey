@@ -1,3 +1,4 @@
+
 import { useState, useEffect, createContext, useContext } from "react";
 import { toast } from "@/hooks/use-toast";
 import { User } from "@/lib/types";
@@ -10,7 +11,6 @@ type AuthContextType = {
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<User | null>;
   register: (username: string, email: string, password: string) => Promise<User | null>;
-  signInWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
 };
 
@@ -21,10 +21,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // Initial session check
     const checkUser = async () => {
       setIsLoading(true);
       
       try {
+        // Get session data
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
           await updateUserData(session);
@@ -36,6 +38,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     };
 
+    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (event === 'SIGNED_IN' && session) {
@@ -48,15 +51,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     checkUser();
 
+    // Cleanup subscription on unmount
     return () => {
       subscription.unsubscribe();
     };
   }, []);
 
+  // Helper to update user data when authentication state changes
   const updateUserData = async (session: Session) => {
     if (!session?.user) return null;
     
     try {
+      // Transform Supabase user to our User type
       const userData: User = {
         id: session.user.id,
         email: session.user.email || '',
@@ -64,6 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         favorites: []
       };
       
+      // Check if there are any favorites
       const { data: favorites } = await supabase
         .from('favorites')
         .select('manga_id')
@@ -159,28 +166,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const signInWithGoogle = async (): Promise<void> => {
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: window.location.origin + '/auth',
-        },
-      });
-
-      if (error) {
-        throw error;
-      }
-    } catch (error: any) {
-      console.error("Google sign-in failed:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Google sign-in failed",
-        variant: "destructive",
-      });
-    }
-  };
-
   const logout = async () => {
     try {
       const { error } = await supabase.auth.signOut();
@@ -213,7 +198,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isAuthenticated: !!user,
         login,
         register,
-        signInWithGoogle,
         logout,
       }}
     >
