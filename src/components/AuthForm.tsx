@@ -1,18 +1,21 @@
-
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 
 export default function AuthForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
   const navigate = useNavigate();
+  const location = useLocation();
   const { login, register } = useAuth();
+
+  // Get the intended destination from state, or default to home
+  const from = location.state?.from || "/";
 
   // Login form state
   const [loginEmail, setLoginEmail] = useState("");
@@ -40,14 +43,11 @@ export default function AuthForm() {
     
     try {
       await login(loginEmail, loginPassword);
-      // Navigation is now handled in the login function
+      // Use replace instead of push to avoid back-button issues
+      navigate(from, { replace: true });
     } catch (error: any) {
       console.error("Login error:", error);
-      toast({
-        title: "Error",
-        description: error?.message || "An error occurred during login",
-        variant: "destructive",
-      });
+      // Toast is now handled in the login function
     } finally {
       setIsLoading(false);
     }
@@ -87,14 +87,11 @@ export default function AuthForm() {
     
     try {
       await register(registerUsername, registerEmail, registerPassword);
-      // Navigation is now handled in the register function
+      // Use replace instead of push to avoid back-button issues
+      navigate(from, { replace: true });
     } catch (error: any) {
       console.error("Registration error:", error);
-      toast({
-        title: "Error",
-        description: error?.message || "An error occurred during registration",
-        variant: "destructive",
-      });
+      // Toast is now handled in the register function
     } finally {
       setIsLoading(false);
     }

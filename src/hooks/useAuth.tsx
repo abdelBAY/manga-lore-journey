@@ -1,6 +1,5 @@
 
 import { useState, useEffect, createContext, useContext } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 import { User } from "@/lib/types";
 import { supabase } from "@/lib/supabase";
@@ -20,8 +19,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const navigate = useNavigate();
-  const location = useLocation();
 
   useEffect(() => {
     // Initial session check
@@ -103,33 +100,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (data.user) {
-        const userData: User = {
-          id: data.user.id,
-          email: data.user.email || '',
-          username: data.user.user_metadata?.username || data.user.email?.split('@')[0] || 'User',
-          favorites: []
-        };
-        
-        // Fetch favorites if any
-        const { data: favorites } = await supabase
-          .from('favorites')
-          .select('manga_id')
-          .eq('user_id', userData.id);
-        
-        if (favorites && favorites.length > 0) {
-          userData.favorites = favorites.map(f => f.manga_id);
-        }
-        
-        setUser(userData);
+        const userData = await updateUserData(data.session);
         
         toast({
           title: "Success",
           description: "Successfully logged in",
         });
-        
-        // Get intended destination or default to home
-        const from = location.state?.from || "/";
-        navigate(from, { replace: true });
         
         return userData;
       }
@@ -137,7 +113,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return null;
     } catch (error: any) {
       console.error("Login failed:", error);
-      throw error; // Re-throw the error so it can be handled by the login component
+      toast({
+        title: "Error",
+        description: error.message || "Login failed",
+        variant: "destructive",
+      });
+      throw error;
     }
   };
 
@@ -170,16 +151,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           description: "Registration successful! Please verify your email if required.",
         });
         
-        // Navigate to home page after registration
-        navigate("/", { replace: true });
-        
         return userData;
       }
       
       return null;
     } catch (error: any) {
       console.error("Registration failed:", error);
-      throw error; // Re-throw the error so it can be handled by the register component
+      toast({
+        title: "Error",
+        description: error.message || "Registration failed",
+        variant: "destructive",
+      });
+      throw error;
     }
   };
 
@@ -192,8 +175,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       
       setUser(null);
-      // Use replace to clear the navigation stack
-      navigate("/", { replace: true });
+      
       toast({
         title: "Success",
         description: "Successfully logged out",
