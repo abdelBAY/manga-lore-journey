@@ -6,32 +6,10 @@ import { Button } from "@/components/ui/button";
 import { 
   TrendingUp, Book, PlusCircle, BookOpen, Users, Settings
 } from "lucide-react";
-import { useEffect, useState } from "react";
-import { checkIsAdmin } from "@/lib/supabase";
-import { useNavigate } from "react-router-dom";
 
 const AdminDashboard = () => {
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    const checkAdmin = async () => {
-      const admin = await checkIsAdmin();
-      setIsAdmin(admin);
-      if (!admin) {
-        navigate("/");
-      }
-    };
-
-    checkAdmin();
-  }, [navigate]);
-
-  if (isAdmin === null) {
-    return <div className="flex items-center justify-center min-h-screen">
-      <div className="text-xl">Loading...</div>
-    </div>;
-  }
-
+  // Admin check removed for development purposes
+  
   return (
     <AdminLayout title="Admin Dashboard">
       <div className="container mx-auto py-6">
