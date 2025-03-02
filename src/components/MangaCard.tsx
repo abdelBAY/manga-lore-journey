@@ -14,6 +14,7 @@ interface MangaCardProps {
 
 export default function MangaCard({ manga, isFavorite = false }: MangaCardProps) {
   const [isImageLoaded, setIsImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
   const { isAuthenticated } = useAuth();
   const addFavorite = useAddFavorite();
   const removeFavorite = useRemoveFavorite();
@@ -31,6 +32,11 @@ export default function MangaCard({ manga, isFavorite = false }: MangaCardProps)
     }
   };
 
+  const handleImageError = () => {
+    setImageError(true);
+    setIsImageLoaded(true);
+  };
+
   return (
     <Link to={`/manga/${manga.id}`} className="group">
       <div className="relative overflow-hidden rounded-lg hover-lift">
@@ -46,7 +52,13 @@ export default function MangaCard({ manga, isFavorite = false }: MangaCardProps)
               isImageLoaded ? "opacity-100" : "opacity-0"
             }`}
             onLoad={() => setIsImageLoaded(true)}
+            onError={handleImageError}
           />
+          {imageError && (
+            <div className="absolute inset-0 bg-gray-800 flex items-center justify-center text-white text-sm p-2 text-center">
+              {manga.title}
+            </div>
+          )}
         </div>
         
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-4 flex flex-col justify-end">

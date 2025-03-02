@@ -6,7 +6,7 @@ export const MOCK_MANGA: Manga[] = [
   {
     id: '1',
     title: 'Demon Slayer',
-    coverImage: 'https://source.unsplash.com/random/300x450/?manga',
+    coverImage: 'https://asia.sega.com/kimetsu_hinokami/en/assets/img/sub/news/210625_02.jpg',
     description: 'A young man\'s family is slaughtered by demons and his sister is turned into one. He vows to avenge his family and cure his sister.',
     status: 'completed',
     genres: ['Action', 'Adventure', 'Fantasy', 'Supernatural'],
@@ -18,7 +18,7 @@ export const MOCK_MANGA: Manga[] = [
   {
     id: '2',
     title: 'Attack on Titan',
-    coverImage: 'https://source.unsplash.com/random/300x450/?manga&id=2',
+    coverImage: 'https://m.media-amazon.com/images/I/91M9VaZWxOL._AC_UF1000,1000_QL80_.jpg',
     description: 'In a world where humanity resides within enormous walled cities to protect themselves from Titans, giant humanoid creatures who devour humans seemingly without reason.',
     status: 'completed',
     genres: ['Action', 'Drama', 'Fantasy', 'Mystery'],
@@ -30,7 +30,7 @@ export const MOCK_MANGA: Manga[] = [
   {
     id: '3',
     title: 'One Piece',
-    coverImage: 'https://source.unsplash.com/random/300x450/?manga&id=3',
+    coverImage: 'https://m.media-amazon.com/images/I/71y+XnBXm4L._AC_UF1000,1000_QL80_.jpg',
     description: 'Follows the adventures of Monkey D. Luffy and his pirate crew in order to find the greatest treasure ever left by the legendary Pirate, Gold Roger.',
     status: 'ongoing',
     genres: ['Action', 'Adventure', 'Comedy', 'Fantasy'],
@@ -42,7 +42,7 @@ export const MOCK_MANGA: Manga[] = [
   {
     id: '4',
     title: 'My Hero Academia',
-    coverImage: 'https://source.unsplash.com/random/300x450/?manga&id=4',
+    coverImage: 'https://m.media-amazon.com/images/I/81Ty+SbJ-6L._AC_UF1000,1000_QL80_.jpg',
     description: 'A superhero-loving boy without any powers enrolls in a prestigious hero academy and learns what it really means to be a hero.',
     status: 'ongoing',
     genres: ['Action', 'Adventure', 'Comedy', 'Supernatural'],
@@ -54,7 +54,7 @@ export const MOCK_MANGA: Manga[] = [
   {
     id: '5',
     title: 'Jujutsu Kaisen',
-    coverImage: 'https://source.unsplash.com/random/300x450/?manga&id=5',
+    coverImage: 'https://m.media-amazon.com/images/I/71iOCpBmjlL._AC_UF1000,1000_QL80_.jpg',
     description: 'A boy swallows a cursed talisman - the finger of a demon - and becomes cursed himself. He enters a shaman school to be able to locate the demon\'s other body parts and thus exorcise himself.',
     status: 'ongoing',
     genres: ['Action', 'Supernatural', 'Horror'],
@@ -66,7 +66,7 @@ export const MOCK_MANGA: Manga[] = [
   {
     id: '6',
     title: 'Chainsaw Man',
-    coverImage: 'https://source.unsplash.com/random/300x450/?manga&id=6',
+    coverImage: 'https://m.media-amazon.com/images/I/81nKguXTVfL._AC_UF1000,1000_QL80_.jpg',
     description: 'Denji has a simple dream—to live a happy and peaceful life, spending time with a girl he likes. This is a far cry from reality, however, as Denji is forced by the yakuza to kill devils to clear his crushing debts.',
     status: 'ongoing',
     genres: ['Action', 'Horror', 'Supernatural'],
@@ -78,7 +78,7 @@ export const MOCK_MANGA: Manga[] = [
   {
     id: '7',
     title: 'Spy x Family',
-    coverImage: 'https://source.unsplash.com/random/300x450/?manga&id=7',
+    coverImage: 'https://m.media-amazon.com/images/I/71vMGRog+iL._AC_UF1000,1000_QL80_.jpg',
     description: 'A spy on an undercover mission gets married and adopts a child as part of his cover. His wife and daughter have secrets of their own, and all three must strive to keep together.',
     status: 'ongoing',
     genres: ['Action', 'Comedy', 'Slice of Life'],
@@ -90,7 +90,7 @@ export const MOCK_MANGA: Manga[] = [
   {
     id: '8',
     title: 'Tokyo Revengers',
-    coverImage: 'https://source.unsplash.com/random/300x450/?manga&id=8',
+    coverImage: 'https://m.media-amazon.com/images/I/71YTlxltuLL._AC_UF1000,1000_QL80_.jpg',
     description: 'A middle-aged loser travels back in time to save his ex-girlfriend from being murdered by a gang.',
     status: 'completed',
     genres: ['Action', 'Drama', 'Supernatural'],
