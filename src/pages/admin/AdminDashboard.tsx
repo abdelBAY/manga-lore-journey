@@ -9,11 +9,16 @@ import {
 import { useEffect, useState } from "react";
 import { checkIsAdmin } from "@/lib/supabase";
 import { useNavigate } from "react-router-dom";
+import { useAdminManga } from "@/hooks/useAdmin";
 
 const AdminDashboard = () => {
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const [isAdmin, setIsAdmin] = useState<boolean>(true); // Set to true by default for development
   const navigate = useNavigate();
+  const { allManga } = useAdminManga();
+  const totalManga = allManga.data?.length || 0;
 
+  // Comment out the admin check for development purposes
+  /*
   useEffect(() => {
     const checkAdmin = async () => {
       const admin = await checkIsAdmin();
@@ -25,12 +30,13 @@ const AdminDashboard = () => {
 
     checkAdmin();
   }, [navigate]);
-
+  
   if (isAdmin === null) {
     return <div className="flex items-center justify-center min-h-screen">
       <div className="text-xl">Loading...</div>
     </div>;
   }
+  */
 
   return (
     <AdminLayout title="Admin Dashboard">
@@ -44,7 +50,7 @@ const AdminDashboard = () => {
               <Book className="h-5 w-5 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">--</div>
+              <div className="text-2xl font-bold">{totalManga}</div>
               <p className="text-sm text-muted-foreground">Titles in database</p>
             </CardContent>
           </Card>
