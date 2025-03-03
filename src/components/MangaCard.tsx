@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Manga } from "@/lib/types";
 import { Heart } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/hooks/auth/useAuth";
 import { useAddFavorite, useRemoveFavorite } from "@/hooks/useManga";
 import { Badge } from "@/components/ui/badge";
 

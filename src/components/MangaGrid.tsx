@@ -1,7 +1,6 @@
-
 import { Manga } from "@/lib/types";
 import MangaCard from "./MangaCard";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/hooks/auth/useAuth";
 
 interface MangaGridProps {
   manga: Manga[];

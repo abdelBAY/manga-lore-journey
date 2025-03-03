@@ -21,7 +21,7 @@ import ChapterForm from "@/pages/admin/ChapterForm";
 import AdminSettings from "@/pages/admin/AdminSettings";
 
 // Auth Provider
-import { AuthProvider } from "@/hooks/useAuth";
+import { AuthProvider } from "@/hooks/auth/useAuth";
 
 // Create a client
 const queryClient = new QueryClient({
