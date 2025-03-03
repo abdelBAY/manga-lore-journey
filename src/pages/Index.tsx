@@ -7,23 +7,70 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ChevronRight } from "lucide-react";
 import { useAllManga, useRecentlyUpdatedManga } from "@/hooks/useManga";
+import { supabase } from "@/integrations/supabase/client";
+import { Manga } from "@/lib/types";
 
 export default function Index() {
-  const { data: manga, isLoading } = useAllManga();
-  const { data: recentManga, isLoading: isRecentLoading } = useRecentlyUpdatedManga();
-  const [featuredManga, setFeaturedManga] = useState<typeof manga>([]); 
-  const [popularManga, setPopularManga] = useState<typeof manga>([]);
+  const [mangaData, setMangaData] = useState<Manga[]>([]);
+  const [recentMangaData, setRecentMangaData] = useState<Manga[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRecentLoading, setIsRecentLoading] = useState(true);
+  const [featuredManga, setFeaturedManga] = useState<Manga[]>([]); 
+  const [popularManga, setPopularManga] = useState<Manga[]>([]);
   
   useEffect(() => {
-    if (manga) {
-      // Get random manga for featured section
-      const shuffled = [...manga].sort(() => 0.5 - Math.random());
-      setFeaturedManga(shuffled.slice(0, 1));
-      
-      // Sort by rating for popular manga
-      setPopularManga([...manga].sort((a, b) => b.rating - a.rating).slice(0, 5));
-    }
-  }, [manga]);
+    const fetchManga = async () => {
+      try {
+        // Fetch all manga from the database
+        const { data, error } = await supabase
+          .from('manga')
+          .select('*');
+        
+        if (error) {
+          console.error('Error fetching manga:', error);
+          return;
+        }
+        
+        if (data) {
+          // Map the data to match our Manga type
+          const formattedData: Manga[] = data.map(item => ({
+            id: item.id,
+            title: item.title,
+            coverImage: item.cover_image,
+            description: item.description,
+            status: item.status as 'ongoing' | 'completed' | 'hiatus',
+            genres: item.genres,
+            author: item.author,
+            artist: item.artist,
+            releaseYear: item.release_year,
+            rating: Number(item.rating)
+          }));
+          
+          setMangaData(formattedData);
+          setIsLoading(false);
+          
+          // Set recent manga (for now, just the same data but will be sorted differently)
+          setRecentMangaData(formattedData);
+          setIsRecentLoading(false);
+          
+          // Get random manga for featured section
+          if (formattedData.length > 0) {
+            const shuffled = [...formattedData].sort(() => 0.5 - Math.random());
+            setFeaturedManga(shuffled.slice(0, 1));
+            
+            // Sort by rating for popular manga
+            setPopularManga([...formattedData].sort((a, b) => b.rating - a.rating).slice(0, 5));
+          }
+        }
+      } catch (error) {
+        console.error('Error in fetchManga:', error);
+        setIsLoading(false);
+        setIsRecentLoading(false);
+      }
+    };
+    
+    fetchManga();
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">
@@ -88,7 +135,7 @@ export default function Index() {
             </Link>
           </div>
           <MangaGrid 
-            manga={recentManga || []} 
+            manga={recentMangaData || []} 
             isLoading={isRecentLoading} 
           />
         </section>
