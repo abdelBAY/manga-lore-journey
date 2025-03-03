@@ -10,10 +10,16 @@ export async function getAllManga(): Promise<Manga[]> {
 
 export async function getRecentlyUpdatedManga(): Promise<Manga[]> {
   await delay(800);
-  // For mock data, we'll simulate recently updated manga by returning a shuffled subset
-  // In a real API, this would fetch manga sorted by update timestamp
-  return [...MOCK_MANGA]
-    .sort(() => 0.5 - Math.random())
+  // For mock data, we'll modify to include both recently created and updated manga
+  // In a real API, this would fetch manga sorted by creation or update timestamp
+  
+  // First, make a copy and shuffle it to simulate random sorting
+  const shuffled = [...MOCK_MANGA].sort(() => 0.5 - Math.random());
+  
+  // Then sort by release year (as a proxy for creation date in our mock data)
+  // This ensures newer manga (by release year) appears in the recently updated section
+  return shuffled
+    .sort((a, b) => b.releaseYear - a.releaseYear)
     .slice(0, 10);
 }
 
