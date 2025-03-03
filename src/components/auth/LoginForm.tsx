@@ -1,11 +1,9 @@
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { LoginFormValues, loginSchema } from "@/lib/auth-schemas";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/hooks/auth/useAuth";
 import { useNavigate, useLocation } from "react-router-dom";
-import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,7 +14,7 @@ interface LoginFormProps {
 }
 
 export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { login } = useAuth();
@@ -35,16 +33,16 @@ export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
   });
 
   const onSubmit = async (data: LoginFormValues) => {
-    setIsLoading(true);
+    setIsSubmitting(true);
     
     try {
       await login(data.email, data.password);
       navigate(from, { replace: true });
     } catch (error: any) {
       console.error("Login error:", error);
-      // Toast is now handled in the login function
+      // Toast is handled in the login function
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -57,7 +55,7 @@ export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
           type="email"
           placeholder="your@email.com"
           {...register("email")}
-          disabled={isLoading}
+          disabled={isSubmitting}
           className="bg-white/5 border-white/20 text-white placeholder:text-white/60"
         />
         {errors.email && (
@@ -83,7 +81,7 @@ export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
           type="password"
           placeholder="••••••••"
           {...register("password")}
-          disabled={isLoading}
+          disabled={isSubmitting}
           className="bg-white/5 border-white/20 text-white placeholder:text-white/60"
         />
         {errors.password && (
@@ -97,9 +95,9 @@ export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
       <Button
         type="submit"
         className="w-full bg-white text-black hover:bg-white/90"
-        disabled={isLoading}
+        disabled={isSubmitting}
       >
-        {isLoading ? "Logging in..." : "Login"}
+        {isSubmitting ? "Logging in..." : "Login"}
       </Button>
       
       <p className="text-center text-sm text-white/70 mt-4">

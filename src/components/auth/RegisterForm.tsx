@@ -1,11 +1,9 @@
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { RegisterFormValues, registerSchema } from "@/lib/auth-schemas";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/hooks/auth/useAuth";
 import { useNavigate, useLocation } from "react-router-dom";
-import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,7 +14,7 @@ interface RegisterFormProps {
 }
 
 export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { register: registerUser } = useAuth();
@@ -37,16 +35,16 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
   });
 
   const onSubmit = async (data: RegisterFormValues) => {
-    setIsLoading(true);
+    setIsSubmitting(true);
     
     try {
       await registerUser(data.username, data.email, data.password);
       navigate(from, { replace: true });
     } catch (error: any) {
       console.error("Registration error:", error);
-      // Toast is now handled in the register function
+      // Toast is handled in the register function
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -59,7 +57,7 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
           type="text"
           placeholder="username"
           {...register("username")}
-          disabled={isLoading}
+          disabled={isSubmitting}
           className="bg-white/5 border-white/20 text-white placeholder:text-white/60"
         />
         {errors.username && (
@@ -77,7 +75,7 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
           type="email"
           placeholder="your@email.com"
           {...register("email")}
-          disabled={isLoading}
+          disabled={isSubmitting}
           className="bg-white/5 border-white/20 text-white placeholder:text-white/60"
         />
         {errors.email && (
@@ -95,7 +93,7 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
           type="password"
           placeholder="••••••••"
           {...register("password")}
-          disabled={isLoading}
+          disabled={isSubmitting}
           className="bg-white/5 border-white/20 text-white placeholder:text-white/60"
         />
         {errors.password && (
@@ -113,7 +111,7 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
           type="password"
           placeholder="••••••••"
           {...register("confirmPassword")}
-          disabled={isLoading}
+          disabled={isSubmitting}
           className="bg-white/5 border-white/20 text-white placeholder:text-white/60"
         />
         {errors.confirmPassword && (
@@ -127,9 +125,9 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
       <Button
         type="submit"
         className="w-full bg-white text-black hover:bg-white/90"
-        disabled={isLoading}
+        disabled={isSubmitting}
       >
-        {isLoading ? "Creating account..." : "Register"}
+        {isSubmitting ? "Creating account..." : "Register"}
       </Button>
       
       <p className="text-center text-sm text-white/70 mt-4">

@@ -4,7 +4,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import ChapterList from "@/components/ChapterList";
 import { useMangaById, useChaptersByMangaId, useAddFavorite, useRemoveFavorite } from "@/hooks/useManga";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/hooks/auth/useAuth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";

@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import MangaGrid from "@/components/MangaGrid";
 import { useFavorites } from "@/hooks/useManga";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/hooks/auth/useAuth";
 import { Button } from "@/components/ui/button";
 import { Heart } from "lucide-react";
 

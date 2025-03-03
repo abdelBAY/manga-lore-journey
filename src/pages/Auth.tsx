@@ -1,7 +1,7 @@
 
 import Header from "@/components/Header";
 import AuthForm from "@/components/AuthForm";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/hooks/auth/useAuth";
 import { useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 
