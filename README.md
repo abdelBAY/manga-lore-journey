@@ -1,57 +1,54 @@
-# Welcome to mangaLore project
+_____________________________________________________________________________________________________________________________________________________________________________________________________________________# Manga Reader 📚
 
-## Project info
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![TypeScript](https://img.shields.io/badge/TypeScript-4.9%2B-blue)](https://www.typescriptlang.org/)
+[![React](https://img.shields.io/badge/React-18%2B-blue)](https://reactjs.org/)
 
-**URL**: https://preview--manga-lore-journey.lovable.app
+A modern manga reading platform with seamless browsing, reading experience, and personal tracking features. Built with React, Express, and PostgreSQL.
 
-## How can I edit this code?
+![App Preview](![preview--manga-lore-journey lovable app_](https://github.com/user-attachments/assets/59d6367e-2854-400b-a927-958c75c3bc3a)
+) <!-- Add actual screenshots later -->
 
-There are several ways of editing your application.
+## Features ✨
 
-**Use your preferred IDE**
+- 🖼️ Grid-based manga browsing with lazy loading
+- 🔍 Advanced search with genre filters and status filtering
+- 📖 Chapter reader with swipe navigation and preloading
+- 🌙 Dark mode support
+- 🔐 User authentication and session management
+- ❤️ Favorites system with persistent storage
+- 📱 Fully responsive design
+- ⚡ Optimized image loading and performance
 
-If you want to work locally using your own IDE, you can clone this repo and push changes.
+## Tech Stack 🛠️
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+**Frontend:**  
+- React 18 + TypeScript
+- TailwindCSS
+- React Query
+- React Router
 
-Follow these steps:
+**Backend:**  
+- Express.js
+- PostgreSQL
+- Drizzle ORM
+- Redis (for session storage)
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+**DevOps:**  
+- Docker
+- GitHub Actions
+- Nginx
 
-# Step 2: Navigate to the project directory.
-cd <manga-lore-journey>
+## Installation 💻
 
-# Step 3: Install the necessary dependencies.
-npm i
+### Prerequisites
+- Node.js 18+
+- PostgreSQL 15+
+- PNPM 8+
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+### Setup Steps
 
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with .
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-
+1. **Clone the repository**
+```bash
+git clone https://github.com/abdelBAY/manga-lore-journey.git
+cd manga-lore-journey
