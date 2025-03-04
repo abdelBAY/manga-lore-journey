@@ -31,9 +31,23 @@ export const fetchUserRole = async () => {
 
 export const checkIsAdmin = async (): Promise<boolean> => {
   try {
-    const role = await fetchUserRole();
-    console.log('User role:', role);
-    return role === 'admin';
+    // Get the session token
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return false;
+    
+    // Call the check-admin edge function with the auth token
+    const { data, error } = await supabase.functions.invoke('check-admin', {
+      headers: {
+        Authorization: `Bearer ${session.access_token}`
+      }
+    });
+    
+    if (error) {
+      console.error('Error checking admin status:', error);
+      return false;
+    }
+    
+    return data?.isAdmin || false;
   } catch (error) {
     console.error('Error checking admin status:', error);
     return false;
@@ -43,44 +57,24 @@ export const checkIsAdmin = async (): Promise<boolean> => {
 // Helper function to set a user as admin (for use in the admin settings)
 export const setUserAsAdmin = async (email: string): Promise<boolean> => {
   try {
-    // First check if the user exists in auth
-    const { data: userData, error: userError } = await supabase
-      .from('auth')
-      .select('id')
-      .eq('email', email)
-      .maybeSingle();
+    // Get the session token
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return false;
     
-    if (userError || !userData) {
-      console.error('User not found:', email);
+    // Call the set-admin edge function with the auth token
+    const { data, error } = await supabase.functions.invoke('set-admin', {
+      headers: {
+        Authorization: `Bearer ${session.access_token}`
+      },
+      body: { email }
+    });
+    
+    if (error) {
+      console.error('Error setting user as admin:', error);
       return false;
     }
     
-    // Check if user already has a role
-    const { data: existingRole } = await supabase
-      .from('user_roles')
-      .select('id')
-      .eq('user_id', userData.id)
-      .maybeSingle();
-    
-    if (existingRole) {
-      // Update existing role
-      const { error } = await supabase
-        .from('user_roles')
-        .update({ role: 'admin' })
-        .eq('user_id', userData.id);
-        
-      return !error;
-    } else {
-      // Insert new role
-      const { error } = await supabase
-        .from('user_roles')
-        .insert({
-          user_id: userData.id,
-          role: 'admin'
-        });
-        
-      return !error;
-    }
+    return data?.success || false;
   } catch (error) {
     console.error('Error setting user as admin:', error);
     return false;

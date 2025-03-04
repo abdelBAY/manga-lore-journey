@@ -6,27 +6,22 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { checkIsAdmin, supabase } from "@/lib/supabase";
+import { setUserAsAdmin } from "@/lib/supabase";
 import { useNavigate } from "react-router-dom";
+import { useIsAdmin } from "@/hooks/useAdmin";
 
 const AdminSettings = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const { isAdmin, isLoading } = useIsAdmin();
 
   useEffect(() => {
-    const checkAdmin = async () => {
-      const admin = await checkIsAdmin();
-      setIsAdmin(admin);
-      if (!admin) {
-        navigate("/");
-      }
-    };
-
-    checkAdmin();
-  }, [navigate]);
+    if (!isLoading && !isAdmin) {
+      navigate("/");
+    }
+  }, [isAdmin, isLoading, navigate]);
 
   const handleAddAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,34 +38,10 @@ const AdminSettings = () => {
     setLoading(true);
     
     try {
-      // Get current user's email
-      const { data: { user } } = await supabase.auth.getUser();
+      const success = await setUserAsAdmin(email);
       
-      if (!user) {
-        throw new Error("You must be logged in to perform this action");
-      }
-      
-      // Find the user by email
-      const { data: userData, error: userError } = await supabase
-        .from('auth.users')
-        .select('id')
-        .eq('email', email)
-        .single();
-      
-      if (userError || !userData) {
-        throw new Error("User not found with that email");
-      }
-      
-      // Insert or update the user role
-      const { error } = await supabase
-        .from('user_roles')
-        .upsert({
-          user_id: userData.id,
-          role: 'admin'
-        }, { onConflict: 'user_id' });
-      
-      if (error) {
-        throw error;
+      if (!success) {
+        throw new Error("Failed to add admin. The user might not exist.");
       }
       
       toast({
@@ -91,7 +62,7 @@ const AdminSettings = () => {
     }
   };
 
-  if (isAdmin === null) {
+  if (isLoading) {
     return <div className="flex items-center justify-center min-h-screen">
       <div className="text-xl">Loading...</div>
     </div>;
