@@ -7,23 +7,115 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ChevronRight } from "lucide-react";
 import { useAllManga, useRecentlyUpdatedManga } from "@/hooks/useManga";
+import { supabase } from "@/lib/supabase";
+import { Manga } from "@/lib/types";
 
 export default function Index() {
-  const { data: manga, isLoading } = useAllManga();
-  const { data: recentManga, isLoading: isRecentLoading } = useRecentlyUpdatedManga();
-  const [featuredManga, setFeaturedManga] = useState<typeof manga>([]); 
-  const [popularManga, setPopularManga] = useState<typeof manga>([]);
+  const { data: apiManga, isLoading: apiLoading } = useAllManga();
+  const { data: apiRecentManga, isLoading: apiRecentLoading } = useRecentlyUpdatedManga();
+  const [manga, setManga] = useState<Manga[]>([]);
+  const [recentManga, setRecentManga] = useState<Manga[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [featuredManga, setFeaturedManga] = useState<Manga[]>([]); 
+  const [popularManga, setPopularManga] = useState<Manga[]>([]);
   
+  // Fetch manga from Supabase
   useEffect(() => {
-    if (manga) {
-      // Get random manga for featured section
-      const shuffled = [...manga].sort(() => 0.5 - Math.random());
-      setFeaturedManga(shuffled.slice(0, 1));
-      
-      // Sort by rating for popular manga
-      setPopularManga([...manga].sort((a, b) => b.rating - a.rating).slice(0, 5));
-    }
-  }, [manga]);
+    const fetchManga = async () => {
+      setIsLoading(true);
+      try {
+        // Get all manga from Supabase
+        const { data: supabaseManga, error } = await supabase
+          .from('manga')
+          .select('*')
+          .order('updated_at', { ascending: false });
+        
+        if (error) {
+          console.error('Error fetching manga from Supabase:', error);
+          // Fallback to API data
+          if (apiManga) {
+            setManga(apiManga);
+            
+            // Get random manga for featured section
+            const shuffled = [...apiManga].sort(() => 0.5 - Math.random());
+            setFeaturedManga(shuffled.slice(0, 1));
+            
+            // Sort by rating for popular manga
+            setPopularManga([...apiManga].sort((a, b) => b.rating - a.rating).slice(0, 5));
+          }
+          
+          if (apiRecentManga) {
+            setRecentManga(apiRecentManga);
+          }
+        } else {
+          if (supabaseManga && supabaseManga.length > 0) {
+            // Map Supabase data to our Manga type
+            const mappedManga: Manga[] = supabaseManga.map(item => ({
+              id: item.id,
+              title: item.title,
+              coverImage: item.cover_image,
+              description: item.description,
+              status: item.status,
+              genres: item.genres,
+              author: item.author,
+              artist: item.artist,
+              releaseYear: item.release_year,
+              rating: item.rating
+            }));
+            
+            setManga(mappedManga);
+            
+            // Get random manga for featured section
+            const shuffled = [...mappedManga].sort(() => 0.5 - Math.random());
+            setFeaturedManga(shuffled.slice(0, 1));
+            
+            // Sort by rating for popular manga
+            setPopularManga([...mappedManga].sort((a, b) => b.rating - a.rating).slice(0, 5));
+            
+            // Set recent manga (already sorted by updated_at from the query)
+            setRecentManga(mappedManga.slice(0, 5));
+          } else {
+            // Fallback to API data
+            if (apiManga) {
+              setManga(apiManga);
+              
+              // Get random manga for featured section
+              const shuffled = [...apiManga].sort(() => 0.5 - Math.random());
+              setFeaturedManga(shuffled.slice(0, 1));
+              
+              // Sort by rating for popular manga
+              setPopularManga([...apiManga].sort((a, b) => b.rating - a.rating).slice(0, 5));
+            }
+            
+            if (apiRecentManga) {
+              setRecentManga(apiRecentManga);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error in fetchManga:', error);
+        // Fallback to API data
+        if (apiManga) {
+          setManga(apiManga);
+          
+          // Get random manga for featured section
+          const shuffled = [...apiManga].sort(() => 0.5 - Math.random());
+          setFeaturedManga(shuffled.slice(0, 1));
+          
+          // Sort by rating for popular manga
+          setPopularManga([...apiManga].sort((a, b) => b.rating - a.rating).slice(0, 5));
+        }
+        
+        if (apiRecentManga) {
+          setRecentManga(apiRecentManga);
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchManga();
+  }, [apiManga, apiRecentManga]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -89,7 +181,7 @@ export default function Index() {
           </div>
           <MangaGrid 
             manga={recentManga || []} 
-            isLoading={isRecentLoading} 
+            isLoading={isLoading || apiRecentLoading} 
           />
         </section>
       </main>
