@@ -21,7 +21,9 @@ export function useIsAdmin() {
       }
 
       try {
+        console.log('Checking admin status for user:', user.id);
         const admin = await checkIsAdmin();
+        console.log('Admin check result:', admin);
         setIsAdmin(admin);
       } catch (error) {
         console.error('Error checking admin status:', error);

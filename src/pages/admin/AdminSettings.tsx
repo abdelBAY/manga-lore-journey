@@ -43,9 +43,35 @@ const AdminSettings = () => {
     setLoading(true);
     
     try {
-      const { data, error } = await supabase.rpc('set_user_admin', { email });
+      // Get current user's email
+      const { data: { user } } = await supabase.auth.getUser();
       
-      if (error) throw error;
+      if (!user) {
+        throw new Error("You must be logged in to perform this action");
+      }
+      
+      // Find the user by email
+      const { data: userData, error: userError } = await supabase
+        .from('auth.users')
+        .select('id')
+        .eq('email', email)
+        .single();
+      
+      if (userError || !userData) {
+        throw new Error("User not found with that email");
+      }
+      
+      // Insert or update the user role
+      const { error } = await supabase
+        .from('user_roles')
+        .upsert({
+          user_id: userData.id,
+          role: 'admin'
+        }, { onConflict: 'user_id' });
+      
+      if (error) {
+        throw error;
+      }
       
       toast({
         title: "Success",
