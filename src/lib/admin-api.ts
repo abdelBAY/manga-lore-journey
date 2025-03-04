@@ -1,3 +1,4 @@
+
 import { supabase } from './supabase';
 import { AdminMangaFormData, AdminChapterFormData, Manga, Chapter } from './types';
 import { toast } from '@/hooks/use-toast';
