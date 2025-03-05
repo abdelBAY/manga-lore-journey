@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/auth/useAuth';
-import { checkIsAdmin } from '@/lib/supabase';
+import { checkIsAdmin, supabase } from '@/lib/supabase';
 import { fetchAllManga, fetchMangaById, createManga, updateManga, deleteManga, 
   fetchChaptersByMangaId, fetchChapterById, createChapter, updateChapter, deleteChapter } from '@/lib/admin-api';
 import { AdminMangaFormData, AdminChapterFormData } from '@/lib/types';
@@ -34,6 +34,32 @@ export function useIsAdmin() {
     };
 
     checkAdmin();
+
+    // Set up realtime subscription for user_roles table
+    if (user) {
+      const channel = supabase
+        .channel('user_roles_changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+            schema: 'public',
+            table: 'user_roles',
+            filter: `user_id=eq.${user.id}` // Only listen to changes for this user
+          },
+          (payload) => {
+            console.log('Realtime user_roles update:', payload);
+            // Recheck admin status when user_roles changes
+            checkAdmin();
+          }
+        )
+        .subscribe();
+
+      // Clean up subscription when component unmounts
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
   }, [user]);
 
   return { isAdmin, isLoading };
