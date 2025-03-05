@@ -1,8 +1,10 @@
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { Chapter, Manga, SearchFilters } from "@/lib/types";
 import { toast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth } from "@/hooks/auth/useAuth"; // Fixed import path
+import { supabase } from "@/lib/supabase"; // Added Supabase import
 
 export function useAllManga() {
   return useQuery({
