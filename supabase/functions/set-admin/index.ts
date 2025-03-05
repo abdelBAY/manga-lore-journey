@@ -1,103 +1,179 @@
 
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.43.1";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+};
 
 serve(async (req) => {
-  // Handle CORS preflight requests
+  // Handle CORS preflight request
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+    return new Response(null, {
+      headers: corsHeaders,
+    });
   }
 
   try {
-    // Get the authorization header from the request
-    const authHeader = req.headers.get('Authorization')
+    // Create a Supabase client with the Auth context of the logged in user
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+
+    // Create a Supabase client with Admin privileges
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Get the JWT token from the request headers
+    const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return new Response(
         JSON.stringify({ error: 'No authorization header' }),
-        { status: 401, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
-      )
+        { 
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
-    // Create a supabase client with the auth header
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
-    const supabase = createClient(supabaseUrl, supabaseServiceKey)
-
-    // Verify the user is authenticated and get their claims
-    const { data: { user }, error: userError } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''))
-    if (userError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid token or user not found' }),
-        { status: 401, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
-      )
-    }
-
-    // Check if the requesting user is an admin
-    const { data: adminCheck, error: adminCheckError } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id)
-      .eq('role', 'admin')
-      .maybeSingle()
-
-    if (adminCheckError || !adminCheck) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized - Only admins can set admin roles' }),
-        { status: 403, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
-      )
-    }
-
-    // Parse the request body
-    const { email } = await req.json()
+    // Parse request body
+    const { email } = await req.json();
     if (!email) {
       return new Response(
         JSON.stringify({ error: 'Email is required' }),
-        { status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
-      )
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
-    // Get the user ID for the email
-    const { data: targetUser, error: targetUserError } = await supabase
-      .from('users')
+    // Get the user by email
+    const { data: userData, error: userError } = await supabaseAdmin
+      .from('profiles')
       .select('id')
       .eq('email', email)
-      .maybeSingle()
+      .maybeSingle();
 
-    if (targetUserError || !targetUser) {
+    if (userError) {
+      console.error("Error getting user:", userError);
       return new Response(
-        JSON.stringify({ error: 'User not found with that email' }),
-        { status: 404, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
-      )
+        JSON.stringify({ error: 'Error getting user' }),
+        { 
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
-    // Upsert the user_role record
-    const { error: roleError } = await supabase
+    if (!userData) {
+      // Try to find user in auth.users
+      const { data: authUser, error: authUserError } = await supabaseAdmin.auth.admin.getUserByEmail(email);
+      
+      if (authUserError || !authUser) {
+        return new Response(
+          JSON.stringify({ error: 'User not found' }),
+          { 
+            status: 404,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        );
+      }
+
+      // Check if user role already exists
+      const { data: existingRole } = await supabaseAdmin
+        .from('user_roles')
+        .select('*')
+        .eq('user_id', authUser.id)
+        .eq('role', 'admin')
+        .maybeSingle();
+
+      if (existingRole) {
+        return new Response(
+          JSON.stringify({ success: true, message: 'User is already an admin' }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        );
+      }
+
+      // Set the user as admin
+      const { error: roleError } = await supabaseAdmin
+        .from('user_roles')
+        .insert({
+          user_id: authUser.id,
+          role: 'admin'
+        });
+
+      if (roleError) {
+        console.error("Error setting user as admin:", roleError);
+        return new Response(
+          JSON.stringify({ error: 'Error setting user as admin' }),
+          { 
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        );
+      }
+
+      return new Response(
+        JSON.stringify({ success: true }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    // Check if user role already exists
+    const { data: existingRole } = await supabaseAdmin
       .from('user_roles')
-      .upsert({
-        user_id: targetUser.id,
+      .select('*')
+      .eq('user_id', userData.id)
+      .eq('role', 'admin')
+      .maybeSingle();
+
+    if (existingRole) {
+      return new Response(
+        JSON.stringify({ success: true, message: 'User is already an admin' }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    // Set the user as admin
+    const { error: roleError } = await supabaseAdmin
+      .from('user_roles')
+      .insert({
+        user_id: userData.id,
         role: 'admin'
-      }, { onConflict: 'user_id' })
+      });
 
     if (roleError) {
+      console.error("Error setting user as admin:", roleError);
       return new Response(
-        JSON.stringify({ error: 'Failed to update user role', details: roleError }),
-        { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
-      )
+        JSON.stringify({ error: 'Error setting user as admin' }),
+        { 
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     return new Response(
-      JSON.stringify({ success: true, message: 'User role updated successfully' }),
-      { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
-    )
+      JSON.stringify({ success: true }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
   } catch (error) {
+    console.error("Unexpected error:", error);
     return new Response(
-      JSON.stringify({ error: 'Internal server error', details: error.message }),
-      { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
-    )
+      JSON.stringify({ error: 'Unexpected error occurred' }),
+      { 
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
   }
-})
+});

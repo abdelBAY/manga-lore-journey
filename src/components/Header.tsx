@@ -1,7 +1,6 @@
-
 import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { Search, Menu, X, Heart, User, BookOpen, Settings, ShieldCheck } from "lucide-react";
+import { Search, Menu, X, Heart, User, BookOpen, ShieldCheck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,23 +31,28 @@ export default function Header() {
     { path: "/", label: "Home" },
     { path: "/search", label: "Browse" },
     ...(isAuthenticated ? [{ path: "/favorites", label: "Favorites" }] : []),
-    // Admin link has been moved to the actions area
   ];
 
   const isActiveLink = (path: string) => 
     (path === "/" && location.pathname === "/") || 
     (path !== "/" && location.pathname.startsWith(path));
 
+  if (!isAuthenticated && location.pathname !== "/auth" && 
+      !location.pathname.startsWith("/manga") && 
+      location.pathname !== "/" && 
+      location.pathname !== "/search") {
+    navigate("/auth");
+    return null;
+  }
+
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-white/10">
       <div className="container mx-auto px-4 flex items-center justify-between h-16">
-        {/* Logo */}
         <Link to="/" className="text-xl font-bold text-white flex items-center gap-2">
           <BookOpen className="w-6 h-6" />
           <span>MangaLore</span>
         </Link>
 
-        {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center space-x-6">
           {navLinks.map((link) => (
             <Link
@@ -65,9 +69,7 @@ export default function Header() {
           ))}
         </nav>
 
-        {/* Desktop Actions */}
         <div className="hidden md:flex items-center space-x-4">
-          {/* Search Input */}
           <form onSubmit={handleSearch} className="relative w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50" />
             <Input
@@ -79,7 +81,6 @@ export default function Header() {
             />
           </form>
 
-          {/* Auth Buttons */}
           {isAuthenticated ? (
             <div className="flex items-center space-x-4">
               <Link to="/favorites">
@@ -128,7 +129,6 @@ export default function Header() {
           )}
         </div>
 
-        {/* Mobile Menu Button */}
         <Sheet>
           <SheetTrigger asChild>
             <Button variant="ghost" size="icon" className="md:hidden">
@@ -148,7 +148,6 @@ export default function Header() {
                 </SheetClose>
               </div>
 
-              {/* Mobile Search */}
               <form onSubmit={handleSearch} className="mb-6">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50" />
@@ -162,7 +161,6 @@ export default function Header() {
                 </div>
               </form>
 
-              {/* Mobile Navigation */}
               <nav className="space-y-2 flex-1">
                 {navLinks.map((link) => (
                   <SheetClose asChild key={link.path}>
@@ -179,7 +177,6 @@ export default function Header() {
                   </SheetClose>
                 ))}
                 
-                {/* Admin link for mobile */}
                 {isAuthenticated && isAdmin && (
                   <SheetClose asChild>
                     <Link
@@ -193,7 +190,6 @@ export default function Header() {
                 )}
               </nav>
 
-              {/* Mobile Auth */}
               <div className="border-t border-white/10 mt-auto pt-4">
                 {isAuthenticated ? (
                   <div className="space-y-4">

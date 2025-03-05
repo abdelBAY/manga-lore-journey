@@ -20,8 +20,9 @@ import ChapterList from "@/pages/admin/ChapterList";
 import ChapterForm from "@/pages/admin/ChapterForm";
 import AdminSettings from "@/pages/admin/AdminSettings";
 
-// Auth Provider
+// Auth Provider and Protected Route
 import { AuthProvider } from "@/hooks/auth/useAuth";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
 
 // Create a client
 const queryClient = new QueryClient({
@@ -44,18 +45,56 @@ function App() {
             <Route path="/manga/:mangaId" element={<MangaDetails />} />
             <Route path="/manga/:mangaId/chapter/:chapterId" element={<Reader />} />
             <Route path="/search" element={<Search />} />
-            <Route path="/favorites" element={<Favorites />} />
             <Route path="/auth" element={<Auth />} />
             
+            {/* Protected Routes */}
+            <Route path="/favorites" element={
+              <ProtectedRoute>
+                <Favorites />
+              </ProtectedRoute>
+            } />
+            
             {/* Admin Routes */}
-            <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="/admin/manga" element={<MangaList />} />
-            <Route path="/admin/manga/:id" element={<MangaForm />} />
-            <Route path="/admin/manga/new" element={<MangaForm />} />
-            <Route path="/admin/chapters" element={<ChapterList />} />
-            <Route path="/admin/chapters/:id" element={<ChapterForm />} />
-            <Route path="/admin/chapters/new" element={<ChapterForm />} />
-            <Route path="/admin/settings" element={<AdminSettings />} />
+            <Route path="/admin" element={
+              <ProtectedRoute>
+                <AdminDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/manga" element={
+              <ProtectedRoute>
+                <MangaList />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/manga/:id" element={
+              <ProtectedRoute>
+                <MangaForm />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/manga/new" element={
+              <ProtectedRoute>
+                <MangaForm />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/chapters" element={
+              <ProtectedRoute>
+                <ChapterList />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/chapters/:id" element={
+              <ProtectedRoute>
+                <ChapterForm />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/chapters/new" element={
+              <ProtectedRoute>
+                <ChapterForm />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/settings" element={
+              <ProtectedRoute>
+                <AdminSettings />
+              </ProtectedRoute>
+            } />
             
             {/* 404 */}
             <Route path="*" element={<NotFound />} />
