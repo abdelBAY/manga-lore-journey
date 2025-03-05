@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { Search, Menu, X, Heart, User, BookOpen, Settings } from "lucide-react";
+import { Search, Menu, X, Heart, User, BookOpen, Settings, ShieldCheck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,7 +32,7 @@ export default function Header() {
     { path: "/", label: "Home" },
     { path: "/search", label: "Browse" },
     ...(isAuthenticated ? [{ path: "/favorites", label: "Favorites" }] : []),
-    ...(isAdmin ? [{ path: "/admin", label: "Admin Dashboard" }] : []),
+    // Admin link has been moved to the actions area
   ];
 
   const isActiveLink = (path: string) => 
@@ -90,8 +90,9 @@ export default function Header() {
               
               {isAdmin && (
                 <Link to="/admin">
-                  <Button variant="ghost" size="icon" className="text-white/70 hover:text-white">
-                    <Settings className="h-5 w-5" />
+                  <Button variant="default" size="sm" className="flex items-center gap-1">
+                    <ShieldCheck className="h-4 w-4" />
+                    <span>Admin Panel</span>
                   </Button>
                 </Link>
               )}
@@ -107,6 +108,11 @@ export default function Header() {
                       <p className="font-medium text-sm truncate">{user?.username}</p>
                       <p className="text-xs text-white/60 truncate">{user?.email}</p>
                     </div>
+                    {isAdmin && (
+                      <Link to="/admin" className="block w-full px-4 py-2 text-left text-sm hover:bg-white/5 text-white/80 hover:text-white">
+                        Admin Dashboard
+                      </Link>
+                    )}
                     <button
                       onClick={() => logout()}
                       className="w-full px-4 py-2 text-left text-sm hover:bg-white/5 text-white/80 hover:text-white"
@@ -172,6 +178,19 @@ export default function Header() {
                     </Link>
                   </SheetClose>
                 ))}
+                
+                {/* Admin link for mobile */}
+                {isAuthenticated && isAdmin && (
+                  <SheetClose asChild>
+                    <Link
+                      to="/admin"
+                      className="flex items-center gap-2 py-2 px-3 rounded-md text-sm bg-primary/10 text-primary"
+                    >
+                      <ShieldCheck className="h-4 w-4" />
+                      Admin Dashboard
+                    </Link>
+                  </SheetClose>
+                )}
               </nav>
 
               {/* Mobile Auth */}
