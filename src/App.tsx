@@ -54,44 +54,44 @@ function App() {
               </ProtectedRoute>
             } />
             
-            {/* Admin Routes */}
+            {/* Admin Routes - Now with requireAdmin prop */}
             <Route path="/admin" element={
-              <ProtectedRoute>
+              <ProtectedRoute requireAdmin={true}>
                 <AdminDashboard />
               </ProtectedRoute>
             } />
             <Route path="/admin/manga" element={
-              <ProtectedRoute>
+              <ProtectedRoute requireAdmin={true}>
                 <MangaList />
               </ProtectedRoute>
             } />
             <Route path="/admin/manga/:id" element={
-              <ProtectedRoute>
+              <ProtectedRoute requireAdmin={true}>
                 <MangaForm />
               </ProtectedRoute>
             } />
             <Route path="/admin/manga/new" element={
-              <ProtectedRoute>
+              <ProtectedRoute requireAdmin={true}>
                 <MangaForm />
               </ProtectedRoute>
             } />
             <Route path="/admin/chapters" element={
-              <ProtectedRoute>
+              <ProtectedRoute requireAdmin={true}>
                 <ChapterList />
               </ProtectedRoute>
             } />
             <Route path="/admin/chapters/:id" element={
-              <ProtectedRoute>
+              <ProtectedRoute requireAdmin={true}>
                 <ChapterForm />
               </ProtectedRoute>
             } />
             <Route path="/admin/chapters/new" element={
-              <ProtectedRoute>
+              <ProtectedRoute requireAdmin={true}>
                 <ChapterForm />
               </ProtectedRoute>
             } />
             <Route path="/admin/settings" element={
-              <ProtectedRoute>
+              <ProtectedRoute requireAdmin={true}>
                 <AdminSettings />
               </ProtectedRoute>
             } />
