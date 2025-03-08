@@ -15,16 +15,32 @@ export function useAuthState(): AuthState {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Try to get cached user from localStorage immediately
+  useEffect(() => {
+    // Immediately check localStorage for faster initial state
+    try {
+      const cachedUser = localStorage.getItem('cached_user');
+      if (cachedUser) {
+        setUser(JSON.parse(cachedUser));
+        // Note: We still need to verify with Supabase, but UI can render immediately
+      }
+    } catch (e) {
+      console.error("Error reading cached user:", e);
+    }
+  }, []);
+
   useEffect(() => {
     // Initial session check
     const checkUser = async () => {
-      setIsLoading(true);
-      
       try {
         // Get session data
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
           await updateUserData(session);
+        } else {
+          // Clear cache if no valid session
+          localStorage.removeItem('cached_user');
+          setUser(null);
         }
       } catch (error) {
         console.error("Error checking auth state:", error);
@@ -45,6 +61,7 @@ export function useAuthState(): AuthState {
         if (event === 'SIGNED_IN' && session) {
           await updateUserData(session);
         } else if (event === 'SIGNED_OUT') {
+          localStorage.removeItem('cached_user');
           setUser(null);
         }
       }
@@ -91,6 +108,9 @@ export function useAuthState(): AuthState {
         username: profile?.username || session.user.email?.split('@')[0] || 'User',
         favorites: favorites?.map(f => f.manga_id) || []
       };
+      
+      // Cache user data in localStorage for faster subsequent loads
+      localStorage.setItem('cached_user', JSON.stringify(userData));
       
       setUser(userData);
       return userData;
