@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import Header from "@/components/Header";
+import HeaderComponent from "@/components/Header";
 import ChapterList from "@/components/ChapterList";
 import { useMangaById, useChaptersByMangaId, useAddFavorite, useRemoveFavorite } from "@/hooks/useManga";
 import { useAuth } from "@/hooks/auth/useAuth";

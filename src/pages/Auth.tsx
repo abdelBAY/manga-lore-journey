@@ -1,5 +1,4 @@
-
-import Header from "@/components/Header";
+import HeaderComponent from "@/components/Header";
 import AuthForm from "@/components/AuthForm";
 import { useAuth } from "@/hooks/auth/useAuth";
 import { useEffect } from "react";
@@ -23,7 +22,7 @@ export default function Auth() {
   
   return (
     <div className="min-h-screen bg-background">
-      <Header />
+      <HeaderComponent />
       
       <main className="container mx-auto px-4 pt-32 pb-16">
         <div className="max-w-md mx-auto mb-10 text-center">
