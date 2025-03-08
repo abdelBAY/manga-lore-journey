@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Search, Menu, X, Heart, User, BookOpen, ShieldCheck } from "lucide-react";
 
@@ -15,10 +16,20 @@ import { useIsAdmin } from "@/hooks/useAdmin";
 
 export default function Header() {
   const { isAuthenticated, user, logout } = useAuth();
-  const { isAdmin } = useIsAdmin();
+  const { isAdmin, isLoading: isAdminLoading } = useIsAdmin();
   const navigate = useNavigate();
   const location = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
+  const [showAdminFeatures, setShowAdminFeatures] = useState(false);
+  
+  // Effect to update admin features visibility
+  useEffect(() => {
+    if (isAuthenticated && isAdmin && !isAdminLoading) {
+      setShowAdminFeatures(true);
+    } else {
+      setShowAdminFeatures(false);
+    }
+  }, [isAuthenticated, isAdmin, isAdminLoading]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,7 +100,7 @@ export default function Header() {
                 </Button>
               </Link>
               
-              {isAdmin && (
+              {showAdminFeatures && (
                 <Link to="/admin">
                   <Button variant="default" size="sm" className="flex items-center gap-1">
                     <ShieldCheck className="h-4 w-4" />
@@ -109,7 +120,7 @@ export default function Header() {
                       <p className="font-medium text-sm truncate">{user?.username}</p>
                       <p className="text-xs text-white/60 truncate">{user?.email}</p>
                     </div>
-                    {isAdmin && (
+                    {showAdminFeatures && (
                       <Link to="/admin" className="block w-full px-4 py-2 text-left text-sm hover:bg-white/5 text-white/80 hover:text-white">
                         Admin Dashboard
                       </Link>
@@ -177,7 +188,7 @@ export default function Header() {
                   </SheetClose>
                 ))}
                 
-                {isAuthenticated && isAdmin && (
+                {showAdminFeatures && (
                   <SheetClose asChild>
                     <Link
                       to="/admin"
