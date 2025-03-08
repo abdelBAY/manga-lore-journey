@@ -2,14 +2,13 @@
 import HeaderComponent from "@/components/Header";
 import AuthForm from "@/components/AuthForm";
 import { useAuth } from "@/hooks/auth/useAuth";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 
 export default function Auth() {
   const { isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [isRedirecting, setIsRedirecting] = useState(false);
   
   // Get the intended destination from state, or default to home
   const from = location.state?.from || "/";
@@ -17,18 +16,13 @@ export default function Auth() {
   // Redirect to home or intended page if already authenticated
   useEffect(() => {
     if (isAuthenticated && !isLoading) {
-      setIsRedirecting(true);
-      // Use a minimal timeout to ensure the UI doesn't flash
-      // This improves perceived performance
-      setTimeout(() => {
-        // Replace instead of push to avoid back-button issues
-        navigate(from, { replace: true });
-      }, 10);
+      // Replace instead of push to avoid back-button issues
+      navigate(from, { replace: true });
     }
   }, [isAuthenticated, isLoading, navigate, from]);
   
-  // Show loading state during initial authentication check or when redirecting
-  if (isLoading || isRedirecting || isAuthenticated) {
+  // Don't render anything during initial load to prevent flashing
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="w-16 h-16 border-4 border-white/20 border-t-white rounded-full animate-spin"></div>
@@ -36,7 +30,11 @@ export default function Auth() {
     );
   }
   
-  // At this point, we know the user is not authenticated and not loading
+  // If already authenticated, render nothing while redirecting
+  if (isAuthenticated) {
+    return null;
+  }
+  
   return (
     <div className="min-h-screen bg-background">
       <HeaderComponent />

@@ -18,7 +18,6 @@ export function useAuthActions(updateUserData: (user: User) => void): AuthAction
     setIsActionLoading(true);
     
     try {
-      // Start auth request
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -29,55 +28,48 @@ export function useAuthActions(updateUserData: (user: User) => void): AuthAction
       }
 
       if (data.user && data.session) {
-        // Create optimistic user right away for immediate UI feedback
-        const optimisticUser: User = {
+        // Get user profile
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', data.user.id)
+          .single();
+        
+        if (profileError) {
+          console.error("Error fetching profile:", profileError);
+        }
+        
+        // Get user favorites
+        const { data: favorites, error: favoritesError } = await supabase
+          .from('favorites')
+          .select('manga_id')
+          .eq('user_id', data.user.id);
+        
+        if (favoritesError) {
+          console.error("Error fetching favorites:", favoritesError);
+        }
+        
+        // Transform Supabase user to our User type
+        const userData: User = {
           id: data.user.id,
           email: data.user.email || '',
-          username: data.user.email?.split('@')[0] || 'User',
-          favorites: []
+          username: profile?.username || data.user.email?.split('@')[0] || 'User',
+          favorites: favorites?.map(f => f.manga_id) || []
         };
         
-        // Update UI immediately
-        updateUserData(optimisticUser);
-
-        // Optimistically cache to localStorage for faster loads
-        localStorage.setItem('cached_user', JSON.stringify(optimisticUser));
-        
-        // In background, fetch complete profile data
-        Promise.all([
-          supabase.from('profiles').select('*').eq('id', data.user.id).single(),
-          supabase.from('favorites').select('manga_id').eq('user_id', data.user.id)
-        ]).then(([profileResult, favoritesResult]) => {
-          if (!profileResult.error && !favoritesResult.error) {
-            const completeUser: User = {
-              id: data.user.id,
-              email: data.user.email || '',
-              username: profileResult.data?.username || data.user.email?.split('@')[0] || 'User',
-              favorites: favoritesResult.data?.map(f => f.manga_id) || []
-            };
-            
-            // Update with complete data
-            updateUserData(completeUser);
-            localStorage.setItem('cached_user', JSON.stringify(completeUser));
-          }
-        }).catch(err => {
-          console.error("Error loading complete profile:", err);
-        });
+        updateUserData(userData);
         
         toast({
           title: "Login Successful",
           description: "Welcome back!",
         });
         
-        return optimisticUser;
+        return userData;
       }
       
       return null;
     } catch (error: any) {
       console.error("Login failed:", error);
-      // Clear any optimistic data
-      localStorage.removeItem('cached_user');
-      
       toast({
         title: "Login Failed",
         description: error.message || "Invalid email or password",
