@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -33,11 +34,15 @@ export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
   });
 
   const onSubmit = async (data: LoginFormValues) => {
+    if (isSubmitting) return;
     setIsSubmitting(true);
     
     try {
-      await login(data.email, data.password);
-      navigate(from, { replace: true });
+      const result = await login(data.email, data.password);
+      if (result) {
+        // Immediate navigation to improve perceived performance
+        navigate(from, { replace: true });
+      }
     } catch (error: any) {
       console.error("Login error:", error);
       // Toast is handled in the login function

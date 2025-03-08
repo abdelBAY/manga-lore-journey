@@ -1,3 +1,4 @@
+
 import HeaderComponent from "@/components/Header";
 import AuthForm from "@/components/AuthForm";
 import { useAuth } from "@/hooks/auth/useAuth";
@@ -18,7 +19,21 @@ export default function Auth() {
       // Replace instead of push to avoid back-button issues
       navigate(from, { replace: true });
     }
-  }, [isAuthenticated, navigate, isLoading, from]);
+  }, [isAuthenticated, isLoading, navigate, from]);
+  
+  // Don't render anything during initial load to prevent flashing
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="w-16 h-16 border-4 border-white/20 border-t-white rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+  
+  // If already authenticated, render nothing while redirecting
+  if (isAuthenticated) {
+    return null;
+  }
   
   return (
     <div className="min-h-screen bg-background">
