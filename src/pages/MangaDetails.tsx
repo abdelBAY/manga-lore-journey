@@ -67,7 +67,7 @@ export default function MangaDetails() {
   if (isLoadingManga) {
     return (
       <div className="min-h-screen bg-background">
-        <Header />
+        <HeaderComponent />
         <div className="container mx-auto px-4 pt-32 pb-16">
           <div className="animate-pulse">
             <div className="w-full h-[300px] rounded-xl bg-white/5 mb-8"></div>
@@ -89,7 +89,7 @@ export default function MangaDetails() {
   if (!manga) {
     return (
       <div className="min-h-screen bg-background">
-        <Header />
+        <HeaderComponent />
         <div className="container mx-auto px-4 pt-32 pb-16 text-center">
           <h1 className="text-2xl text-white mb-4">Manga Not Found</h1>
           <Button onClick={() => navigate("/")} variant="outline" className="border-white/20 text-white">
@@ -102,7 +102,7 @@ export default function MangaDetails() {
   
   return (
     <div className="min-h-screen bg-background">
-      <Header />
+      <HeaderComponent />
       
       <main className="container mx-auto px-4 pt-32 pb-16">
         {/* Hero section with cover image */}
