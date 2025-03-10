@@ -46,12 +46,14 @@ serve(async (req) => {
     if (userError || !user) {
       console.error("Error getting user:", userError);
       return new Response(
-        JSON.stringify({ isAdmin: false }),
+        JSON.stringify({ isAdmin: false, error: userError?.message }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       );
     }
+
+    console.log("Checking admin status for user:", user.id);
 
     // Check if the user has admin role
     const { data: userRoles, error: roleError } = await supabase
@@ -64,16 +66,19 @@ serve(async (req) => {
     if (roleError) {
       console.error("Error checking admin role:", roleError);
       return new Response(
-        JSON.stringify({ isAdmin: false }),
+        JSON.stringify({ isAdmin: false, error: roleError.message }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       );
     }
 
+    const isAdmin = !!userRoles;
+    console.log("Is admin result:", isAdmin);
+
     // Return whether the user is an admin
     return new Response(
-      JSON.stringify({ isAdmin: !!userRoles }),
+      JSON.stringify({ isAdmin }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
@@ -81,7 +86,7 @@ serve(async (req) => {
   } catch (error) {
     console.error("Unexpected error:", error);
     return new Response(
-      JSON.stringify({ isAdmin: false, error: 'Unexpected error occurred' }),
+      JSON.stringify({ isAdmin: false, error: 'Unexpected error occurred', details: error.message }),
       { 
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }

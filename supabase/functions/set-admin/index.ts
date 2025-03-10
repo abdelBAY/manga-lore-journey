@@ -36,6 +36,29 @@ serve(async (req) => {
       );
     }
 
+    // First check if the caller has admin rights
+    const token = authHeader.replace('Bearer ', '');
+    const callerClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    });
+    
+    // We only need to check auth for callers, not for the user being made admin
+    const { data: { user: callerUser }, error: callerError } = await callerClient.auth.getUser();
+    if (callerError || !callerUser) {
+      console.error("Caller auth error:", callerError);
+      return new Response(
+        JSON.stringify({ error: 'Authentication error', details: callerError?.message }),
+        { 
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
     // Parse request body
     const { email } = await req.json();
     if (!email) {
@@ -48,17 +71,15 @@ serve(async (req) => {
       );
     }
 
-    // Get the user by email
-    const { data: userData, error: userError } = await supabaseAdmin
-      .from('profiles')
-      .select('id')
-      .eq('email', email)
-      .maybeSingle();
+    console.log("Looking up user with email:", email);
 
+    // Try to get user by email using the admin auth client
+    const { data: userData, error: userError } = await supabaseAdmin.auth.admin.getUserByEmail(email);
+    
     if (userError) {
       console.error("Error getting user:", userError);
       return new Response(
-        JSON.stringify({ error: 'Error getting user' }),
+        JSON.stringify({ error: 'Error getting user', details: userError.message }),
         { 
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -66,73 +87,40 @@ serve(async (req) => {
       );
     }
 
-    if (!userData) {
-      // Try to find user in auth.users
-      const { data: authUser, error: authUserError } = await supabaseAdmin.auth.admin.getUserByEmail(email);
-      
-      if (authUserError || !authUser) {
-        return new Response(
-          JSON.stringify({ error: 'User not found' }),
-          { 
-            status: 404,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          }
-        );
-      }
-
-      // Check if user role already exists
-      const { data: existingRole } = await supabaseAdmin
-        .from('user_roles')
-        .select('*')
-        .eq('user_id', authUser.id)
-        .eq('role', 'admin')
-        .maybeSingle();
-
-      if (existingRole) {
-        return new Response(
-          JSON.stringify({ success: true, message: 'User is already an admin' }),
-          { 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          }
-        );
-      }
-
-      // Set the user as admin
-      const { error: roleError } = await supabaseAdmin
-        .from('user_roles')
-        .insert({
-          user_id: authUser.id,
-          role: 'admin'
-        });
-
-      if (roleError) {
-        console.error("Error setting user as admin:", roleError);
-        return new Response(
-          JSON.stringify({ error: 'Error setting user as admin' }),
-          { 
-            status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          }
-        );
-      }
-
+    if (!userData || !userData.user) {
       return new Response(
-        JSON.stringify({ success: true }),
+        JSON.stringify({ error: 'User not found with email: ' + email }),
         { 
+          status: 404,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       );
     }
 
+    const userId = userData.user.id;
+    console.log("Found user with ID:", userId);
+
     // Check if user role already exists
-    const { data: existingRole } = await supabaseAdmin
+    const { data: existingRole, error: roleCheckError } = await supabaseAdmin
       .from('user_roles')
       .select('*')
-      .eq('user_id', userData.id)
+      .eq('user_id', userId)
       .eq('role', 'admin')
       .maybeSingle();
 
+    if (roleCheckError) {
+      console.error("Error checking existing role:", roleCheckError);
+      return new Response(
+        JSON.stringify({ error: 'Error checking existing role', details: roleCheckError.message }),
+        { 
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
     if (existingRole) {
+      console.log("User is already an admin");
       return new Response(
         JSON.stringify({ success: true, message: 'User is already an admin' }),
         { 
@@ -141,18 +129,19 @@ serve(async (req) => {
       );
     }
 
+    console.log("Setting user as admin:", userId);
     // Set the user as admin
     const { error: roleError } = await supabaseAdmin
       .from('user_roles')
       .insert({
-        user_id: userData.id,
+        user_id: userId,
         role: 'admin'
       });
 
     if (roleError) {
       console.error("Error setting user as admin:", roleError);
       return new Response(
-        JSON.stringify({ error: 'Error setting user as admin' }),
+        JSON.stringify({ error: 'Error setting user as admin', details: roleError.message }),
         { 
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -160,6 +149,7 @@ serve(async (req) => {
       );
     }
 
+    console.log("Successfully set user as admin");
     return new Response(
       JSON.stringify({ success: true }),
       { 
@@ -169,7 +159,7 @@ serve(async (req) => {
   } catch (error) {
     console.error("Unexpected error:", error);
     return new Response(
-      JSON.stringify({ error: 'Unexpected error occurred' }),
+      JSON.stringify({ error: 'Unexpected error occurred', details: error.message }),
       { 
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }

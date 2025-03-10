@@ -33,7 +33,10 @@ export const checkIsAdmin = async (): Promise<boolean> => {
   try {
     // Get the session token
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return false;
+    if (!session) {
+      console.log('No session found');
+      return false;
+    }
     
     // Call the check-admin edge function with the auth token
     const { data, error } = await supabase.functions.invoke('check-admin', {
@@ -54,12 +57,22 @@ export const checkIsAdmin = async (): Promise<boolean> => {
   }
 };
 
-// Helper function to set a user as admin (for use in the admin settings)
+// Helper function to set a user as admin
 export const setUserAsAdmin = async (email: string): Promise<boolean> => {
+  if (!email || !email.includes('@')) {
+    console.error('Invalid email provided:', email);
+    return false;
+  }
+
   try {
     // Get the session token
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return false;
+    if (!session) {
+      console.error('No session found, user must be logged in');
+      return false;
+    }
+    
+    console.log(`Attempting to grant admin access to: ${email}`);
     
     // Call the set-admin edge function with the auth token
     const { data, error } = await supabase.functions.invoke('set-admin', {
@@ -74,6 +87,7 @@ export const setUserAsAdmin = async (email: string): Promise<boolean> => {
       return false;
     }
     
+    console.log('Set admin response:', data);
     return data?.success || false;
   } catch (error) {
     console.error('Error setting user as admin:', error);
