@@ -3,7 +3,6 @@ import { useState, useEffect } from "react";
 import { User } from "@/lib/types";
 import { supabase } from "@/lib/supabase";
 import { Session } from "@supabase/supabase-js";
-import { toast } from "@/hooks/use-toast";
 
 type AuthState = {
   user: User | null;
@@ -28,11 +27,6 @@ export function useAuthState(): AuthState {
         }
       } catch (error) {
         console.error("Error checking auth state:", error);
-        toast({
-          title: "Authentication Error",
-          description: "There was a problem checking your authentication status.",
-          variant: "destructive",
-        });
       } finally {
         setIsLoading(false);
       }
@@ -41,7 +35,6 @@ export function useAuthState(): AuthState {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth state changed:', event, session);
         if (event === 'SIGNED_IN' && session) {
           await updateUserData(session);
         } else if (event === 'SIGNED_OUT') {
@@ -63,34 +56,23 @@ export function useAuthState(): AuthState {
     if (!session?.user) return null;
     
     try {
-      // Get user profile from the profiles table
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', session.user.id)
-        .single();
-      
-      if (profileError) {
-        console.error("Error fetching user profile:", profileError);
-      }
-      
-      // Get user favorites
-      const { data: favorites, error: favoritesError } = await supabase
-        .from('favorites')
-        .select('manga_id')
-        .eq('user_id', session.user.id);
-      
-      if (favoritesError) {
-        console.error("Error fetching favorites:", favoritesError);
-      }
-      
       // Transform Supabase user to our User type
       const userData: User = {
         id: session.user.id,
         email: session.user.email || '',
-        username: profile?.username || session.user.email?.split('@')[0] || 'User',
-        favorites: favorites?.map(f => f.manga_id) || []
+        username: session.user.user_metadata?.username || session.user.email?.split('@')[0] || 'User',
+        favorites: []
       };
+      
+      // Check if there are any favorites
+      const { data: favorites } = await supabase
+        .from('favorites')
+        .select('manga_id')
+        .eq('user_id', userData.id);
+      
+      if (favorites && favorites.length > 0) {
+        userData.favorites = favorites.map(f => f.manga_id);
+      }
       
       setUser(userData);
       return userData;

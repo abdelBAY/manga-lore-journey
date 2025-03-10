@@ -1,6 +1,7 @@
+
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import HeaderComponent from "@/components/Header";
+import Header from "@/components/Header";
 import MangaGrid from "@/components/MangaGrid";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -26,7 +27,7 @@ export default function Index() {
 
   return (
     <div className="min-h-screen bg-background">
-      <HeaderComponent />
+      <Header />
       
       <main className="container mx-auto px-4 pb-16 pt-24">
         {/* Hero section with featured manga */}

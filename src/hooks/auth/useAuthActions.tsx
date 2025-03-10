@@ -28,40 +28,29 @@ export function useAuthActions(updateUserData: (user: User) => void): AuthAction
       }
 
       if (data.user && data.session) {
-        // Get user profile
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', data.user.id)
-          .single();
-        
-        if (profileError) {
-          console.error("Error fetching profile:", profileError);
-        }
-        
-        // Get user favorites
-        const { data: favorites, error: favoritesError } = await supabase
-          .from('favorites')
-          .select('manga_id')
-          .eq('user_id', data.user.id);
-        
-        if (favoritesError) {
-          console.error("Error fetching favorites:", favoritesError);
-        }
-        
         // Transform Supabase user to our User type
         const userData: User = {
           id: data.user.id,
           email: data.user.email || '',
-          username: profile?.username || data.user.email?.split('@')[0] || 'User',
-          favorites: favorites?.map(f => f.manga_id) || []
+          username: data.user.user_metadata?.username || data.user.email?.split('@')[0] || 'User',
+          favorites: []
         };
+        
+        // Check if there are any favorites
+        const { data: favorites } = await supabase
+          .from('favorites')
+          .select('manga_id')
+          .eq('user_id', userData.id);
+        
+        if (favorites && favorites.length > 0) {
+          userData.favorites = favorites.map(f => f.manga_id);
+        }
         
         updateUserData(userData);
         
         toast({
-          title: "Login Successful",
-          description: "Welcome back!",
+          title: "Success",
+          description: "Successfully logged in",
         });
         
         return userData;
@@ -71,11 +60,11 @@ export function useAuthActions(updateUserData: (user: User) => void): AuthAction
     } catch (error: any) {
       console.error("Login failed:", error);
       toast({
-        title: "Login Failed",
-        description: error.message || "Invalid email or password",
+        title: "Error",
+        description: error.message || "Login failed",
         variant: "destructive",
       });
-      return null;
+      throw error;
     } finally {
       setIsActionLoading(false);
     }
@@ -85,26 +74,6 @@ export function useAuthActions(updateUserData: (user: User) => void): AuthAction
     setIsActionLoading(true);
     
     try {
-      // Check if username is already taken
-      const { data: existingProfiles, error: checkError } = await supabase
-        .from('profiles')
-        .select('username')
-        .eq('username', username);
-      
-      if (checkError) {
-        console.error("Error checking username:", checkError);
-      }
-      
-      if (existingProfiles && existingProfiles.length > 0) {
-        toast({
-          title: "Registration Failed",
-          description: "Username is already taken. Please choose another one.",
-          variant: "destructive",
-        });
-        return null;
-      }
-      
-      // Register the user
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -121,15 +90,15 @@ export function useAuthActions(updateUserData: (user: User) => void): AuthAction
         const userData: User = {
           id: data.user.id,
           email: data.user.email || '',
-          username: username,
+          username: username || data.user.email?.split('@')[0] || 'User',
           favorites: []
         };
         
         updateUserData(userData);
         
         toast({
-          title: "Registration Successful",
-          description: "Your account has been created successfully!",
+          title: "Success",
+          description: "Registration successful! Please verify your email if required.",
         });
         
         return userData;
@@ -139,11 +108,11 @@ export function useAuthActions(updateUserData: (user: User) => void): AuthAction
     } catch (error: any) {
       console.error("Registration failed:", error);
       toast({
-        title: "Registration Failed",
-        description: error.message || "Could not create your account",
+        title: "Error",
+        description: error.message || "Registration failed",
         variant: "destructive",
       });
-      return null;
+      throw error;
     } finally {
       setIsActionLoading(false);
     }
@@ -157,15 +126,17 @@ export function useAuthActions(updateUserData: (user: User) => void): AuthAction
         throw error;
       }
       
+      // User state will be cleared by the auth state listener
+      
       toast({
-        title: "Logged Out",
-        description: "You have been successfully logged out",
+        title: "Success",
+        description: "Successfully logged out",
       });
     } catch (error: any) {
       console.error("Logout failed:", error);
       toast({
-        title: "Logout Failed",
-        description: error.message || "Could not log you out",
+        title: "Error",
+        description: error.message || "Logout failed",
         variant: "destructive",
       });
     }

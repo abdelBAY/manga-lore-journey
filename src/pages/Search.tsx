@@ -1,6 +1,7 @@
+
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import HeaderComponent from "@/components/Header";
+import Header from "@/components/Header";
 import MangaGrid from "@/components/MangaGrid";
 import SearchFiltersComponent from "@/components/SearchFilters";
 import { useSearchManga } from "@/hooks/useManga";
@@ -49,7 +50,7 @@ export default function Search() {
   
   return (
     <div className="min-h-screen bg-background">
-      <HeaderComponent />
+      <Header />
       
       <main className="container mx-auto px-4 pt-32 pb-16">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">

@@ -1,5 +1,5 @@
 
-import HeaderComponent from "@/components/Header";
+import Header from "@/components/Header";
 import AuthForm from "@/components/AuthForm";
 import { useAuth } from "@/hooks/auth/useAuth";
 import { useEffect } from "react";
@@ -19,25 +19,11 @@ export default function Auth() {
       // Replace instead of push to avoid back-button issues
       navigate(from, { replace: true });
     }
-  }, [isAuthenticated, isLoading, navigate, from]);
-  
-  // Don't render anything during initial load to prevent flashing
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="w-16 h-16 border-4 border-white/20 border-t-white rounded-full animate-spin"></div>
-      </div>
-    );
-  }
-  
-  // If already authenticated, render nothing while redirecting
-  if (isAuthenticated) {
-    return null;
-  }
+  }, [isAuthenticated, navigate, isLoading, from]);
   
   return (
     <div className="min-h-screen bg-background">
-      <HeaderComponent />
+      <Header />
       
       <main className="container mx-auto px-4 pt-32 pb-16">
         <div className="max-w-md mx-auto mb-10 text-center">

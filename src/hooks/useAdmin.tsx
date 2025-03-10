@@ -1,89 +1,40 @@
-import { useState, useEffect, useCallback } from 'react';
+
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/auth/useAuth';
-import { checkIsAdmin, supabase } from '@/lib/supabase';
+import { checkIsAdmin } from '@/lib/supabase';
 import { fetchAllManga, fetchMangaById, createManga, updateManga, deleteManga, 
   fetchChaptersByMangaId, fetchChapterById, createChapter, updateChapter, deleteChapter } from '@/lib/admin-api';
 import { AdminMangaFormData, AdminChapterFormData } from '@/lib/types';
-
-// Cache TTL for admin status (5 minutes)
-const ADMIN_CACHE_TTL = 5 * 60 * 1000;
 
 export function useIsAdmin() {
   const { user } = useAuth();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [lastChecked, setLastChecked] = useState<number | null>(null);
 
-  const checkAdmin = useCallback(async () => {
-    if (!user) {
-      setIsAdmin(false);
-      setIsLoading(false);
-      return;
-    }
-
-    // If we've checked recently, don't check again
-    if (lastChecked && Date.now() - lastChecked < ADMIN_CACHE_TTL) {
-      console.log('Using cached admin status:', isAdmin);
-      setIsLoading(false);
-      return;
-    }
-
-    try {
-      console.log('Checking admin status for user:', user.id);
-      const admin = await checkIsAdmin();
-      console.log('Admin check result:', admin);
-      setIsAdmin(admin);
-      setLastChecked(Date.now());
-    } catch (error) {
-      console.error('Error checking admin status:', error);
-      setIsAdmin(false);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [user, lastChecked, isAdmin]);
-
-  // Initial check
   useEffect(() => {
-    checkAdmin();
-  }, [user, checkAdmin]);
+    const checkAdmin = async () => {
+      if (!user) {
+        setIsAdmin(false);
+        setIsLoading(false);
+        return;
+      }
 
-  // Force refresh admin status
-  const refreshAdminStatus = () => {
-    setLastChecked(null);
-    setIsLoading(true);
-    checkAdmin();
-  };
-
-  // Set up realtime subscription for user_roles table
-  useEffect(() => {
-    if (!user) return;
-
-    const channel = supabase
-      .channel('user_roles_changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
-          schema: 'public',
-          table: 'user_roles',
-          filter: `user_id=eq.${user.id}` // Only listen to changes for this user
-        },
-        (payload) => {
-          console.log('Realtime user_roles update:', payload);
-          // Invalidate cache and recheck admin status
-          refreshAdminStatus();
-        }
-      )
-      .subscribe();
-
-    // Clean up subscription when component unmounts
-    return () => {
-      supabase.removeChannel(channel);
+      try {
+        const admin = await checkIsAdmin();
+        setIsAdmin(admin);
+      } catch (error) {
+        console.error('Error checking admin status:', error);
+        setIsAdmin(false);
+      } finally {
+        setIsLoading(false);
+      }
     };
+
+    checkAdmin();
   }, [user]);
 
-  return { isAdmin, isLoading, refreshAdminStatus };
+  return { isAdmin, isLoading };
 }
 
 export function useAdminManga() {
