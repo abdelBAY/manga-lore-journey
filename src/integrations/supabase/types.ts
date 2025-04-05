@@ -9,13 +9,145 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      chapters: {
+        Row: {
+          created_at: string
+          id: string
+          manga_id: string
+          number: number
+          pages: string[]
+          release_date: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          manga_id: string
+          number: number
+          pages: string[]
+          release_date?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          manga_id?: string
+          number?: number
+          pages?: string[]
+          release_date?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chapters_manga_id_fkey"
+            columns: ["manga_id"]
+            isOneToOne: false
+            referencedRelation: "manga"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      favorites: {
+        Row: {
+          created_at: string
+          id: string
+          manga_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          manga_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          manga_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      manga: {
+        Row: {
+          artist: string
+          author: string
+          cover_image: string
+          created_at: string
+          description: string
+          genres: string[]
+          id: string
+          rating: number | null
+          release_year: number
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          artist: string
+          author: string
+          cover_image: string
+          created_at?: string
+          description: string
+          genres: string[]
+          id?: string
+          rating?: number | null
+          release_year: number
+          status: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          artist?: string
+          author?: string
+          cover_image?: string
+          created_at?: string
+          description?: string
+          genres?: string[]
+          id?: string
+          rating?: number | null
+          release_year?: number
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      set_user_admin: {
+        Args: {
+          email: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

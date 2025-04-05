@@ -74,6 +74,17 @@ export function useAuthState(): AuthState {
         userData.favorites = favorites.map(f => f.manga_id);
       }
       
+      // Get user role
+      const { data: roleData } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userData.id)
+        .single();
+      
+      if (roleData) {
+        userData.role = roleData.role;
+      }
+      
       setUser(userData);
       return userData;
     } catch (error) {

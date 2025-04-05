@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { checkIsAdmin, supabase } from "@/lib/supabase";
+import { checkIsAdmin, setUserAdmin } from "@/lib/supabase";
 import { useNavigate } from "react-router-dom";
 
 const AdminSettings = () => {
@@ -43,9 +43,11 @@ const AdminSettings = () => {
     setLoading(true);
     
     try {
-      const { data, error } = await supabase.rpc('set_user_admin', { email });
+      const success = await setUserAdmin(email);
       
-      if (error) throw error;
+      if (!success) {
+        throw new Error("User not found or operation failed");
+      }
       
       toast({
         title: "Success",
