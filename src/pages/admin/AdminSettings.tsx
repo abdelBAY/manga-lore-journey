@@ -1,69 +1,21 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { checkIsAdmin, setUserAdmin } from "@/lib/supabase";
-import { useNavigate } from "react-router-dom";
+import { setUserAdmin } from "@/lib/supabase";
 import { useAuth } from "@/hooks/auth/useAuth";
+import { useIsAdmin } from "@/hooks/useAdmin";
 
 const AdminSettings = () => {
   const { toast } = useToast();
-  const navigate = useNavigate();
   const { user } = useAuth();
+  const { isAdmin, isLoading, isFirstUser } = useIsAdmin();
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
-  const [checkingAdmin, setCheckingAdmin] = useState(true);
-
-  useEffect(() => {
-    const checkAdmin = async () => {
-      console.log("Checking admin status...");
-      setCheckingAdmin(true);
-      
-      try {
-        if (!user) {
-          console.log("No user logged in");
-          setIsAdmin(false);
-          navigate("/auth", { state: { from: "/admin/settings" } });
-          return;
-        }
-
-        console.log("User is logged in, checking admin status for:", user.email);
-        const admin = await checkIsAdmin();
-        console.log("Admin check result:", admin);
-        
-        setIsAdmin(admin);
-        
-        if (!admin) {
-          console.log("User is not an admin, granting admin to first user");
-          // For the first user of the system, automatically make them an admin
-          const success = await setUserAdmin(user.email);
-          if (success) {
-            console.log("Successfully granted admin to first user");
-            setIsAdmin(true);
-            toast({
-              title: "Admin Access Granted",
-              description: "You have been granted admin access as the first user.",
-            });
-          } else {
-            console.log("Admin grant failed, redirecting to home");
-            navigate("/");
-          }
-        }
-      } catch (error) {
-        console.error("Error checking admin status:", error);
-        setIsAdmin(false);
-      } finally {
-        setCheckingAdmin(false);
-      }
-    };
-
-    checkAdmin();
-  }, [navigate, user, toast]);
 
   const handleAddAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -104,7 +56,7 @@ const AdminSettings = () => {
     }
   };
 
-  if (checkingAdmin) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-xl">Checking admin privileges...</div>
@@ -116,6 +68,14 @@ const AdminSettings = () => {
     <AdminLayout title="Admin Settings">
       <div className="container mx-auto py-6">
         <h1 className="text-3xl font-bold mb-6">Admin Settings</h1>
+        
+        {isFirstUser && (
+          <div className="bg-green-500/20 border border-green-500/30 rounded-md p-4 mb-6">
+            <p className="text-green-500 font-medium">
+              You have been automatically granted admin privileges as the first user.
+            </p>
+          </div>
+        )}
         
         <div className="grid gap-6">
           <Card>

@@ -13,6 +13,7 @@ import {
   LogOut,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { toast } from '@/hooks/use-toast';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -27,6 +28,11 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       console.log("User not authenticated, redirecting to auth page");
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to access the admin area.",
+        variant: "destructive",
+      });
       navigate("/auth", { state: { from: window.location.pathname } });
     }
   }, [isLoading, isAuthenticated, navigate]);
