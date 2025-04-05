@@ -10,23 +10,28 @@ import {
 import { AdminMangaFormData, AdminChapterFormData } from '@/lib/types';
 
 export function useIsAdmin() {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const checkAdmin = async () => {
-      if (!user) {
+      console.log("useIsAdmin: Checking admin status", { user, isAuthenticated });
+      
+      if (!isAuthenticated || !user) {
+        console.log("useIsAdmin: User not authenticated");
         setIsAdmin(false);
         setIsLoading(false);
         return;
       }
 
       try {
+        console.log("useIsAdmin: Checking admin role for", user.email);
         const admin = await checkIsAdmin();
+        console.log("useIsAdmin: Admin check result:", admin);
         setIsAdmin(admin);
       } catch (error) {
-        console.error('Error checking admin status:', error);
+        console.error('useIsAdmin: Error checking admin status:', error);
         setIsAdmin(false);
       } finally {
         setIsLoading(false);
@@ -34,7 +39,7 @@ export function useIsAdmin() {
     };
 
     checkAdmin();
-  }, [user]);
+  }, [user, isAuthenticated]);
 
   return { isAdmin, isLoading };
 }

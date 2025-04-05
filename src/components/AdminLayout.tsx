@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useIsAdmin } from '@/hooks/useAdmin';
 import { useAuth } from '@/hooks/auth/useAuth';
@@ -21,8 +21,15 @@ interface AdminLayoutProps {
 
 export default function AdminLayout({ children, title }: AdminLayoutProps) {
   const { isAdmin, isLoading } = useIsAdmin();
-  const { user, logout } = useAuth();
+  const { user, logout, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      console.log("User not authenticated, redirecting to auth page");
+      navigate("/auth", { state: { from: window.location.pathname } });
+    }
+  }, [isLoading, isAuthenticated, navigate]);
 
   if (isLoading) {
     return (
@@ -34,7 +41,7 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
     );
   }
 
-  if (!isAdmin) {
+  if (!isAdmin && !isLoading) {
     return (
       <div className="h-screen flex flex-col items-center justify-center">
         <h1 className="text-2xl font-bold text-white mb-4">Access Denied</h1>
