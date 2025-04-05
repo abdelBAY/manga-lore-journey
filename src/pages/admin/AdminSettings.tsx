@@ -1,5 +1,6 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import AdminLayout from "@/components/AdminLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,11 +12,27 @@ import { useAuth } from "@/hooks/auth/useAuth";
 import { useIsAdmin } from "@/hooks/useAdmin";
 
 const AdminSettings = () => {
+  const navigate = useNavigate();
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const { isAdmin, isLoading, isFirstUser } = useIsAdmin();
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    console.log("AdminSettings: Component mounted", { isAuthenticated, isAdmin, isLoading });
+    
+    // If authentication is complete and user is not authenticated, redirect to login
+    if (!isAuthenticated && !isLoading) {
+      console.log("AdminSettings: Not authenticated, redirecting to auth");
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to access the admin area.",
+        variant: "destructive",
+      });
+      navigate("/auth", { state: { from: "/admin/settings" } });
+    }
+  }, [isAuthenticated, isLoading, navigate]);
 
   const handleAddAdmin = async (e: React.FormEvent) => {
     e.preventDefault();

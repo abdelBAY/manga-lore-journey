@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/auth/useAuth';
@@ -10,14 +11,19 @@ import { AdminMangaFormData, AdminChapterFormData } from '@/lib/types';
 import { toast } from '@/hooks/use-toast';
 
 export function useIsAdmin() {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isFirstUser, setIsFirstUser] = useState(false);
 
   useEffect(() => {
     const checkAdmin = async () => {
-      console.log("useIsAdmin: Checking admin status", { user, isAuthenticated });
+      console.log("useIsAdmin: Checking admin status", { user, isAuthenticated, authLoading });
+      
+      if (authLoading) {
+        console.log("useIsAdmin: Auth still loading, waiting...");
+        return;
+      }
       
       if (!isAuthenticated || !user) {
         console.log("useIsAdmin: User not authenticated");
@@ -63,7 +69,7 @@ export function useIsAdmin() {
     };
 
     checkAdmin();
-  }, [user, isAuthenticated]);
+  }, [user, isAuthenticated, authLoading]);
 
   return { isAdmin, isLoading, isFirstUser };
 }

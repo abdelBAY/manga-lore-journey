@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useIsAdmin } from '@/hooks/useAdmin';
 import { useAuth } from '@/hooks/auth/useAuth';
@@ -11,9 +11,10 @@ import {
   Settings,
   User,
   LogOut,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { toast } from '@/hooks/use-toast';
+import { useToast } from '@/hooks/use-toast';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -21,33 +22,50 @@ interface AdminLayoutProps {
 }
 
 export default function AdminLayout({ children, title }: AdminLayoutProps) {
-  const { isAdmin, isLoading } = useIsAdmin();
-  const { user, logout, isAuthenticated } = useAuth();
+  const { isAdmin, isLoading: adminLoading } = useIsAdmin();
+  const { user, logout, isAuthenticated, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      console.log("User not authenticated, redirecting to auth page");
-      toast({
-        title: "Authentication Required",
-        description: "Please log in to access the admin area.",
-        variant: "destructive",
-      });
-      navigate("/auth", { state: { from: window.location.pathname } });
+    console.log("AdminLayout: Component mounted", { 
+      isAuthenticated, 
+      authLoading, 
+      isAdmin, 
+      adminLoading
+    });
+    
+    // Only complete checks when all loading states are done
+    if (!authLoading && !adminLoading) {
+      console.log("AdminLayout: Auth checks complete", { isAuthenticated, isAdmin });
+      setIsChecking(false);
+      
+      // If not authenticated, redirect to login
+      if (!isAuthenticated) {
+        console.log("AdminLayout: Not authenticated, redirecting to auth");
+        toast({
+          title: "Authentication Required",
+          description: "Please log in to access the admin area.",
+          variant: "destructive",
+        });
+        navigate("/auth", { state: { from: window.location.pathname } });
+      }
     }
-  }, [isLoading, isAuthenticated, navigate]);
+  }, [isAuthenticated, authLoading, isAdmin, adminLoading, navigate]);
 
-  if (isLoading) {
+  if (isChecking || authLoading || adminLoading) {
     return (
       <div className="h-screen flex items-center justify-center">
-        <div className="animate-pulse text-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <p className="text-xl text-white/70">Loading admin dashboard...</p>
         </div>
       </div>
     );
   }
 
-  if (!isAdmin && !isLoading) {
+  if (!isAdmin) {
     return (
       <div className="h-screen flex flex-col items-center justify-center">
         <h1 className="text-2xl font-bold text-white mb-4">Access Denied</h1>
@@ -103,7 +121,10 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
             <Button
               variant="ghost"
               className="justify-start text-destructive/80 hover:text-destructive hover:bg-destructive/10"
-              onClick={() => logout()}
+              onClick={() => {
+                logout();
+                navigate('/');
+              }}
             >
               <LogOut size={16} className="mr-2" />
               Logout
