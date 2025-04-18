@@ -1,38 +1,32 @@
 
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import AdminLayout from "@/components/AdminLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { setUserAdmin } from "@/lib/supabase";
-import { useAuth } from "@/hooks/auth/useAuth";
-import { useIsAdmin } from "@/hooks/useAdmin";
+import { checkIsAdmin, supabase } from "@/lib/supabase";
+import { useNavigate } from "react-router-dom";
 
 const AdminSettings = () => {
-  const navigate = useNavigate();
   const { toast } = useToast();
-  const { user, isAuthenticated } = useAuth();
-  const { isAdmin, isLoading, isFirstUser } = useIsAdmin();
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
 
   useEffect(() => {
-    console.log("AdminSettings: Component mounted", { isAuthenticated, isAdmin, isLoading });
-    
-    // If authentication is complete and user is not authenticated, redirect to login
-    if (!isAuthenticated && !isLoading) {
-      console.log("AdminSettings: Not authenticated, redirecting to auth");
-      toast({
-        title: "Authentication Required",
-        description: "Please log in to access the admin area.",
-        variant: "destructive",
-      });
-      navigate("/auth", { state: { from: "/admin/settings" } });
-    }
-  }, [isAuthenticated, isLoading, navigate]);
+    const checkAdmin = async () => {
+      const admin = await checkIsAdmin();
+      setIsAdmin(admin);
+      if (!admin) {
+        navigate("/");
+      }
+    };
+
+    checkAdmin();
+  }, [navigate]);
 
   const handleAddAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,11 +43,9 @@ const AdminSettings = () => {
     setLoading(true);
     
     try {
-      const success = await setUserAdmin(email);
+      const { data, error } = await supabase.rpc('set_user_admin', { email });
       
-      if (!success) {
-        throw new Error("User not found or operation failed");
-      }
+      if (error) throw error;
       
       toast({
         title: "Success",
@@ -73,26 +65,16 @@ const AdminSettings = () => {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-xl">Checking admin privileges...</div>
-      </div>
-    );
+  if (isAdmin === null) {
+    return <div className="flex items-center justify-center min-h-screen">
+      <div className="text-xl">Loading...</div>
+    </div>;
   }
 
   return (
     <AdminLayout title="Admin Settings">
       <div className="container mx-auto py-6">
         <h1 className="text-3xl font-bold mb-6">Admin Settings</h1>
-        
-        {isFirstUser && (
-          <div className="bg-green-500/20 border border-green-500/30 rounded-md p-4 mb-6">
-            <p className="text-green-500 font-medium">
-              You have been automatically granted admin privileges as the first user.
-            </p>
-          </div>
-        )}
         
         <div className="grid gap-6">
           <Card>

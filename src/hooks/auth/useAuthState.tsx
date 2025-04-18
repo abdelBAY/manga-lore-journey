@@ -15,7 +15,6 @@ export function useAuthState(): AuthState {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    console.log("useAuthState: Initializing auth state");
     // Initial session check
     const checkUser = async () => {
       setIsLoading(true);
@@ -23,12 +22,8 @@ export function useAuthState(): AuthState {
       try {
         // Get session data
         const { data: { session } } = await supabase.auth.getSession();
-        console.log("useAuthState: Initial session check", { hasSession: !!session });
-        
         if (session) {
           await updateUserData(session);
-        } else {
-          setUser(null);
         }
       } catch (error) {
         console.error("Error checking auth state:", error);
@@ -40,9 +35,7 @@ export function useAuthState(): AuthState {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log("useAuthState: Auth state changed", { event, hasSession: !!session });
-        
-        if (session) {
+        if (event === 'SIGNED_IN' && session) {
           await updateUserData(session);
         } else if (event === 'SIGNED_OUT') {
           setUser(null);
@@ -63,8 +56,6 @@ export function useAuthState(): AuthState {
     if (!session?.user) return null;
     
     try {
-      console.log("useAuthState: Updating user data for", session.user.email);
-      
       // Transform Supabase user to our User type
       const userData: User = {
         id: session.user.id,
@@ -81,20 +72,6 @@ export function useAuthState(): AuthState {
       
       if (favorites && favorites.length > 0) {
         userData.favorites = favorites.map(f => f.manga_id);
-      }
-      
-      // Get user role
-      const { data: roleData } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userData.id)
-        .single();
-      
-      if (roleData) {
-        userData.role = roleData.role;
-        console.log("useAuthState: User role found", roleData.role);
-      } else {
-        console.log("useAuthState: No user role found");
       }
       
       setUser(userData);

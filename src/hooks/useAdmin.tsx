@@ -2,66 +2,29 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/auth/useAuth';
-import { checkIsAdmin, setUserAdmin } from '@/lib/supabase';
-import { 
-  fetchAllManga, fetchMangaById, createManga, updateManga, deleteManga, 
-  fetchChaptersByMangaId, fetchChapterById, createChapter, updateChapter, deleteChapter 
-} from '@/lib/admin-api';
+import { checkIsAdmin } from '@/lib/supabase';
+import { fetchAllManga, fetchMangaById, createManga, updateManga, deleteManga, 
+  fetchChaptersByMangaId, fetchChapterById, createChapter, updateChapter, deleteChapter } from '@/lib/admin-api';
 import { AdminMangaFormData, AdminChapterFormData } from '@/lib/types';
-import { toast } from '@/hooks/use-toast';
 
 export function useIsAdmin() {
-  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { user } = useAuth();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isFirstUser, setIsFirstUser] = useState(false);
 
   useEffect(() => {
     const checkAdmin = async () => {
-      console.log("useIsAdmin: Checking admin status", { user, isAuthenticated, authLoading });
-      
-      if (authLoading) {
-        console.log("useIsAdmin: Auth still loading, waiting...");
-        return;
-      }
-      
-      if (!isAuthenticated || !user) {
-        console.log("useIsAdmin: User not authenticated");
+      if (!user) {
         setIsAdmin(false);
         setIsLoading(false);
         return;
       }
 
       try {
-        console.log("useIsAdmin: Checking admin role for", user.email);
         const admin = await checkIsAdmin();
-        console.log("useIsAdmin: Admin check result:", admin);
-        
-        // If not admin, try to make first user an admin automatically
-        if (!admin) {
-          console.log("useIsAdmin: Not an admin, checking if first user");
-          try {
-            const success = await setUserAdmin(user.email);
-            if (success) {
-              console.log("useIsAdmin: Successfully made first user an admin");
-              setIsAdmin(true);
-              setIsFirstUser(true);
-              toast({
-                title: "Admin Access Granted",
-                description: "You have been granted admin privileges as the first user.",
-              });
-            } else {
-              setIsAdmin(false);
-            }
-          } catch (error) {
-            console.error("useIsAdmin: Error making first user admin:", error);
-            setIsAdmin(false);
-          }
-        } else {
-          setIsAdmin(admin);
-        }
+        setIsAdmin(admin);
       } catch (error) {
-        console.error('useIsAdmin: Error checking admin status:', error);
+        console.error('Error checking admin status:', error);
         setIsAdmin(false);
       } finally {
         setIsLoading(false);
@@ -69,9 +32,9 @@ export function useIsAdmin() {
     };
 
     checkAdmin();
-  }, [user, isAuthenticated, authLoading]);
+  }, [user]);
 
-  return { isAdmin, isLoading, isFirstUser };
+  return { isAdmin, isLoading };
 }
 
 export function useAdminManga() {

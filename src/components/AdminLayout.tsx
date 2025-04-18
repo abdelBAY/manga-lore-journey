@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useIsAdmin } from '@/hooks/useAdmin';
 import { useAuth } from '@/hooks/auth/useAuth';
@@ -11,10 +11,8 @@ import {
   Settings,
   User,
   LogOut,
-  Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -22,43 +20,14 @@ interface AdminLayoutProps {
 }
 
 export default function AdminLayout({ children, title }: AdminLayoutProps) {
-  const { isAdmin, isLoading: adminLoading } = useIsAdmin();
-  const { user, logout, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { isAdmin, isLoading } = useIsAdmin();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const [isChecking, setIsChecking] = useState(true);
 
-  useEffect(() => {
-    console.log("AdminLayout: Component mounted", { 
-      isAuthenticated, 
-      authLoading, 
-      isAdmin, 
-      adminLoading
-    });
-    
-    // Only complete checks when all loading states are done
-    if (!authLoading && !adminLoading) {
-      console.log("AdminLayout: Auth checks complete", { isAuthenticated, isAdmin });
-      setIsChecking(false);
-      
-      // If not authenticated, redirect to login
-      if (!isAuthenticated) {
-        console.log("AdminLayout: Not authenticated, redirecting to auth");
-        toast({
-          title: "Authentication Required",
-          description: "Please log in to access the admin area.",
-          variant: "destructive",
-        });
-        navigate("/auth", { state: { from: window.location.pathname } });
-      }
-    }
-  }, [isAuthenticated, authLoading, isAdmin, adminLoading, navigate]);
-
-  if (isChecking || authLoading || adminLoading) {
+  if (isLoading) {
     return (
       <div className="h-screen flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="animate-pulse text-center">
           <p className="text-xl text-white/70">Loading admin dashboard...</p>
         </div>
       </div>
@@ -121,10 +90,7 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
             <Button
               variant="ghost"
               className="justify-start text-destructive/80 hover:text-destructive hover:bg-destructive/10"
-              onClick={() => {
-                logout();
-                navigate('/');
-              }}
+              onClick={() => logout()}
             >
               <LogOut size={16} className="mr-2" />
               Logout

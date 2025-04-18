@@ -46,17 +46,6 @@ export function useAuthActions(updateUserData: (user: User) => void): AuthAction
           userData.favorites = favorites.map(f => f.manga_id);
         }
         
-        // Get user role
-        const { data: roleData } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', userData.id)
-          .single();
-        
-        if (roleData) {
-          userData.role = roleData.role;
-        }
-        
         updateUserData(userData);
         
         toast({
